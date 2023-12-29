@@ -88,7 +88,7 @@ def registrator(user_data):
 
 # СПИСОК КАТЕГОРИЙ +
 def get_categories():
-    """возвращаем списка названий категорий"""
+    """возвращаем список названий категорий"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
