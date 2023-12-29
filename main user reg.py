@@ -8,7 +8,7 @@ from DB_project import *
 GROUP_ID = '223946162'
 GROUP_TOKEN = 'vk1.a.zhRXKGyzrpgcWWQ5aSSFSdckc_EuQLXdT2PLoiX_5ZvTVu1HYMdcaezUMqjQVNKMQmffElYVvu39gBLIFVWYabtm3lQP_Fv8HO5yELeBKK09PXuldnTY2SzcM3dFGtBlpiJijl_xfT-gc8Y7lk1QXHIGDJv2fde9vGqN3x6-9S_plpAa9NWfKaXJKk5mJq4MOwRA_SQSPUQBCzit13VRlg'
 API_VERSION = '5.120'
-
+#asvsdvs
 # Запуск бота
 vk_session = VkApi(token=GROUP_TOKEN, api_version=API_VERSION)
 vk = vk_session.get_api()
