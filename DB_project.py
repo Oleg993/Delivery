@@ -9,70 +9,96 @@ bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 
 # В БЛЭКЕ ИЛИ НЕТ +
 def is_in_black_list(user_id):
-    """проверка в блэке или нет
-    True - в блэке, False - нет"""
-    with sqlite3.connect('Delivery.db') as db:
-        cursor = db.cursor()
-        cursor.execute("SELECT block_status FROM Users WHERE id == ?", [user_id])
-        result = cursor.fetchone()
-        if len(result) == 0:
-            return False
-        return True
+    """
+    проверка пользователь в блэке или нет
+    :param user_id: id пользователя
+    :return: True - в блэке, False - нет
+    """
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT block_status FROM Users WHERE id == ?", [user_id])
+            result = cursor.fetchone()
+            if result is None:
+                return False
+            return True
+    except sqlite3.Error as e:
+        print(f"Ошибка при выполнении запроса: {e}")
+        return False
 
 
 # НОВЫЙ ПОЛЬЗОВАТЕЛЬ ИЛИ НЕТ +
 def is_new(user_id):
-    """проверка новый пользователь или нет
-     True - новый, False - есть в базе"""
-    with sqlite3.connect('Delivery.db') as db:
-        cursor = db.cursor()
-        cursor.execute("SELECT id FROM Users WHERE id == ?", [user_id])
-        result = cursor.fetchone()
-        if len(result) == 0:
-            return True
-        return False
+    """
+    проверка новый пользователь или нет
+    :param user_id: id пользователя
+    :return: True - новый, False - есть в базе
+    """
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT id FROM Users WHERE id == ?", [user_id])
+            result = cursor.fetchone()
+            if len(result) == 0:
+                return True
+            return False
+    except Exception as e:
+        print(f"Произошла ошибка при выполнении запроса: {e}")
 
 
 # ЯВЛЯЕТСЯ ЛИ АДМИНОМ +
 def is_admin(user_id):
-    """проверяем является ли админом, если да, то с какими полномочиями
-       False если не админ"""
-    with sqlite3.connect('Delivery.db') as db:
-        cursor = db.cursor()
-        cursor.execute("""SELECT is_admin, is_super_admin 
-                                FROM Users
-                                JOIN Admins ON Users.id = Admins.user_id 
-                                WHERE Users.id == ?""", [user_id])
-        result = cursor.fetchone()
-        if len(result) == 0:
-            return False
-        return 'Суперадмин' if result[1] == 1 else 'Обычный'
+    """
+    проверяем является ли админом, если да, то с какими полномочиями
+    :param user_id: id пользователя
+    :return: True - admin, False - не админ
+    """
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("""SELECT is_admin, is_super_admin 
+                                    FROM Users
+                                    JOIN Admins ON Users.id = Admins.user_id 
+                                    WHERE Users.id == ?""", [user_id])
+            result = cursor.fetchone()
+            if len(result) == 0:
+                return False
+            return 'Суперадмин' if result[1] == 1 else 'Обычный'
+    except Exception as e:
+        print(f"Произошла ошибка при выполнении функции is_admin: {e}")
+        return False
 
 
 # РЕГИСТРАЦИЯ НОВОГО ПОЛЬЗОВАТЕЛЯ +
 def registrator(user_data):
-    """принимает список данных [id, user_name, phone_number, birthday (формат ввода '01.01.2023')] и записываем в БД"""
-    with sqlite3.connect('Delivery.db') as db:
-        cursor = db.cursor()
-        cursor.execute("INSERT INTO Users(id, user_name, phone_number, birthday) VALUES (?, ?, ?, ?)",
-                       user_data)
-        cursor.execute("SELECT user_name FROM Users WHERE id = ?", [user_data[0]])
-        data = cursor.fetchone()
-        if len(data) == 0:
-            return f'Не удалось добавить пользователя {user_data[1]} в БД.'
-        return f'Пользователь {user_data[1]} добавлен в базу данных.'
+    """
+    принимает список данных и добавляет пользователя в БД
+    :param user_data: [id, user_name, phone_number, birthday (формат ввода '01.01.2023')]
+    :return:True если регистрация прошла успешно
+    """
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("INSERT INTO Users(id, user_name, phone_number, birthday) VALUES (?, ?, ?, ?)",
+                           user_data)
+            return True
+    except sqlite3.Error as e:
+        return f"Ошибка при выполнении регистраиции: {str(e)}"
 
 
 # СПИСОК КАТЕГОРИЙ +
 def get_categories():
     """возвращаем списка названий категорий"""
-    with sqlite3.connect('Delivery.db') as db:
-        cursor = db.cursor()
-        cursor.execute("SELECT name FROM Categories GROUP BY name")
-        result = cursor.fetchall()
-        if len(result) == 0:
-            return "Не удалось загрузить список категорий."
-        return [i[0] for i in result]
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT name FROM Categories GROUP BY name")
+            result = cursor.fetchall()
+            if len(result) == 0:
+                raise Exception("Список категорий пуст.")
+            return [i[0] for i in result]
+    except sqlite3.Error as e:
+        raise Exception(f"Ошибка при получении списка категорий: {str(e)}")
 
 
 # СПИСОК ТОВАРОВ В ВЫБРАННОЙ КАТЕГОРИИ +
