@@ -1,7 +1,6 @@
 import sqlite3
 import datetime
 import telebot
-from PIL import Image
 
 bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 
@@ -39,7 +38,7 @@ def is_new(user_id):
 
 # ЯВЛЯЕТСЯ ЛИ АДМИНОМ +
 def is_admin(user_id):
-    """проверяем является ли админом, если да, то с какими полномочиями
+    """проверяем является ли админом
     :param user_id: id пользователя
     :return: True - admin, False - не админ"""
     try:
@@ -47,7 +46,23 @@ def is_admin(user_id):
             cursor = db.cursor()
             cursor.execute("SELECT is_admin FROM Users WHERE Users.id == ?", [user_id])
             result = cursor.fetchone()
-            return result is not None
+            return result[0] == 1
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка: {e}")
+        return False
+
+
+# ПРОВЕРЯЕТ ПОЛНОМОЧИЯ АДМИНА +
+def is_super_admin(user_id):
+    """проверяем с какими полномочиями
+    :param user_id: id admin
+    :return: True - super, False - обычный"""
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT is_super_admin FROM Admins WHERE Admins.user_id == ?", [user_id])
+            result = cursor.fetchone()
+            return result[0] == 1
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -55,9 +70,9 @@ def is_admin(user_id):
 
 # РЕГИСТРАЦИЯ НОВОГО ПОЛЬЗОВАТЕЛЯ ++
 def registrator(user_data):
-    """принимает список данных и добавляет пользователя в БД
+    """принимает СПИСОК данных и добавляет пользователя в БД
     :param user_data: [id, user_name, phone_number, birthday (формат ввода '01.01.2023')]
-    :return:True если регистрация прошла успешно"""
+    :return:True - регистрация прошла успешно иначе False"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
@@ -68,9 +83,11 @@ def registrator(user_data):
         print(f"Ошибка при выполнении регистраиции: {e}")
         return False
 
+
 # СПИСОК КАТЕГОРИЙ ++
 def get_categories():
-    """возвращаем списка названий категорий"""
+    """возвращаем список названий категорий
+    :return: Список категорий, False если таблица пустая """
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
@@ -78,7 +95,7 @@ def get_categories():
             result = cursor.fetchall()
             return False if len(result) == 0 else [i[0] for i in result]
     except sqlite3.Error as e:
-        raise Exception(f"Ошибка при получении списка категорий: {str(e)}")
+        raise Exception(f"Ошибка при получении списка категорий: {e}")
 
 
 # СПИСОК ТОВАРОВ В ВЫБРАННОЙ КАТЕГОРИИ ++
@@ -90,7 +107,7 @@ def get_from_category(category_name):
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             query = ("""SELECT DISTINCT Goods.name FROM Goods 
-                       JOIN Categories ON Categories.description = Goods.category
+                       JOIN Categories ON Categories.id = Goods.category
                        WHERE Categories.category_name = ?""")
             cursor.execute(query, [category_name])
             result = cursor.fetchall()
@@ -100,22 +117,19 @@ def get_from_category(category_name):
         return False
 
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # КАРТОЧКА ВЫБРАННОГО ТОВАРА ++
 def show_product_card(product_name):
-    """ Отображает данные для карточки товара
+    """Отображает данные для карточки товара
     :param product_name: название товара
-    :return: возвращает картеж с данными для карточки товара"""
+    :return: возвращает картеж с данными для карточки товара
+    последний элемент кортежа - ПУТЬ К КАРТИНКЕ"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("""SELECT name, good_description, weight, price, ranking, image
                            FROM Goods WHERE name = ?""", [product_name])
             result = cursor.fetchone()
-            if result is None:
-                return False
-            image = Image.open(result[-1])
-            return result[:-1] + image
+            return result if result is not None else False
     except sqlite3.Error as e:
         print(f"Произошла ошибка при получении данных: {e}")
         return False
@@ -324,7 +338,7 @@ def add_comment(good_name, user_id, content):
 
             cursor.execute("INSERT INTO Comments (comment_id, good_id, user_id) VALUES (?, ?, ?)",
                            [comment_id, good_id[0], user_id])
-            return cursor.rowcount == 0
+            return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при добавлении комментария: {e}")
         return False
@@ -343,19 +357,15 @@ def add_new_goods(params):
             cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight, image)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
             good_id = cursor.lastrowid
-            category = params[0]
             if params[0] == 1:
                 category_name = 'Блюда'
             if params[0] == 2:
                 category_name = 'Напитки'
-            cursor.execute("INSERT INTO Categories(description, category_name) VALUES(?, ?)", [category, category_name])
-            cursor.execute("SELECT * FROM Goods WHERE id = ?", [good_id])
-            data = cursor.fetchall()
-            if len(data) == 0:
-                return "Не удалось добавить товар в базу данных."
-            return f"Добавлен новый товар: {params[1]}"
-    except:
-        pass
+            cursor.execute("INSERT INTO Categories(id, category_name) VALUES(?, ?)", [params[0], category_name])
+            return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Произошла ошибка: {e}")
+        return False
 
 
 # УДАЛЕНИЕ ТОВАРА +
