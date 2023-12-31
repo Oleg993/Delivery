@@ -1,13 +1,15 @@
 import sqlite3
-from datetime import datetime
+from datetime import datetime, timedelta
 from PIL import Image
 import io
 
-from DB_project import is_valid_key
+# from DB_project import show_order_info
+# from DB_project import add_new_goods
 
+# registrator([100, 'Oleg', '+375291234567', '12.01.1993'])
+# print(show_order_info(100))
 
-print(is_valid_key(331))
-
+print()
 
     # (2, 'Fix Dark', 'Fix Dark - это таинственное темное пиво, которое пленит своей глубиной и насыщенным вкусом. Его аромат обволакивает нежными нотами шоколада и кофе, а густая пена создает иллюзию ночного неба. Откройте для себя магию темных оттенков в каждом глотке Fix Dark.', 4.99, 3, 4, 500, 2, open('imgs/beer.jpeg', 'rb').read()),
     # (2, 'Beer OuroPretana', 'Beer OuroPretana - это темное пиво с глубокими оттенками и богатым вкусом. Его аромат раскрывается нотками шоколада, кофе и карамели, создавая приятное слияние сладости и горечи. Пиво обладает плотной текстурой и умеренной газировкой, что придает ему особую гармонию. Beer OuroPretana - это идеальный выбор для ценителей темных сортов пива, желающих насладиться насыщенным и утонченным вкусом.', 5.35, 3, 4, 500, 2, open('imgs/beer2.jpeg', 'rb').read()),
@@ -41,7 +43,6 @@ print(is_valid_key(331))
 #     query = """
 #     CREATE TABLE IF NOT EXISTS Categories(
 #         id INTEGER PRIMARY KEY,
-#         description INTEGER,
 #         category_name TEXT(100)
 #     );
 #
@@ -56,10 +57,17 @@ print(is_valid_key(331))
 #         weight INTEGER,
 #         is_on_pause INTEGER DEFAULT 2,
 #         image BLOB,
-#         FOREIGN KEY (category) REFERENCES Categories(description)
+#         FOREIGN KEY (category) REFERENCES Categories(category_name)
 #     );
-#         CREATE TABLE IF NOT EXISTS Recipe(
-#         Id INTEGER PRIMARY KEY ,
+#     CREATE TABLE IF NOT EXISTS Images(
+#         id INTEGER PRIMARY KEY ,
+#         img_path TEXT,
+#         tg_id INTEGER,
+#         FOREIGN KEY (id) REFERENCES Goods(image)
+#     );
+#
+#     CREATE TABLE IF NOT EXISTS Recipe(
+#         id INTEGER PRIMARY KEY ,
 #         good_id INTEGER,
 #         composition TEXT(100),
 #         description TEXT(500),
