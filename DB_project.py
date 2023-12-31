@@ -169,19 +169,20 @@ def get_total_price(goods):
         return None
 
 
-# ПОЛУЧАЕМ ID ТОВАРОВ ПО НАЗВАНИЯМ
+# ПОЛУЧАЕМ ID ТОВАРОВ ПО НАЗВАНИЯМ +
 def get_good_ids(names):
     """вывод списка id товаров по именам товаров
-    :param names: [название товара, название товара]
+    :param names: СПИСОК [название товара, название товара]
     :return: список id товаров"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             goods_id = []
             for name in names:
-                cursor.execute("SELECT id FROM Goods WHERE name = ?", [names])
+                cursor.execute("SELECT id FROM Goods WHERE name = ?", [name])
                 good_id = cursor.fetchone()
-                goods_id.append(good_id)
+                if good_id:
+                    goods_id.append(good_id[0])
             return goods_id
     except sqlite3.Error as e:
         print(f"Ошибка при получении общей id товаров: {e}")
@@ -356,12 +357,12 @@ def add_new_goods(params):
             cursor = db.cursor()
             cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight, image)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
-            good_id = cursor.lastrowid
             if params[0] == 1:
                 category_name = 'Блюда'
             if params[0] == 2:
                 category_name = 'Напитки'
-            cursor.execute("INSERT INTO Categories(id, category_name) VALUES(?, ?)", [params[0], category_name])
+            cursor.execute("INSERT INTO Categories(id, good_name, category_name) VALUES(?, ?, ?)",
+                           [params[0], params[1], category_name])
             return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
@@ -377,6 +378,8 @@ def delete_goods(good_name):
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("DELETE FROM Goods WHERE name = ?", [good_name])
+            if cursor.rowcount > 0:
+                cursor.execute("DELETE FROM Categories WHERE good_name = ?", [good_name])
             return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при удалении товара: {e}")
