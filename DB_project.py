@@ -91,7 +91,7 @@ def get_categories():
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("SELECT name FROM Categories GROUP BY name")
+            cursor.execute("SELECT category_name FROM Categories GROUP BY category_name")
             result = cursor.fetchall()
             return False if len(result) == 0 else [i[0] for i in result]
     except sqlite3.Error as e:
