@@ -1,6 +1,7 @@
 import sqlite3
 import datetime
 import telebot
+from PIL import Image
 
 bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 
@@ -70,9 +71,9 @@ def is_super_admin(user_id):
 
 # РЕГИСТРАЦИЯ НОВОГО ПОЛЬЗОВАТЕЛЯ ++
 def registrator(user_data):
-    """принимает СПИСОК данных и добавляет пользователя в БД
+    """принимает список данных и добавляет пользователя в БД
     :param user_data: [id, user_name, phone_number, birthday (формат ввода '01.01.2023')]
-    :return:True - регистрация прошла успешно иначе False"""
+    :return:True если регистрация прошла успешно"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
@@ -100,7 +101,7 @@ def get_categories():
 
 # СПИСОК ТОВАРОВ В ВЫБРАННОЙ КАТЕГОРИИ ++
 def get_from_category(category_name):
-    """ возвращает список всех названий товаров в категории
+    """возвращает список всех названий товаров в категории
     :param category_name: название категории
     :return: список всех названий товаров в категории [(name), (name)]"""
     try:
@@ -169,7 +170,7 @@ def get_total_price(goods):
         return None
 
 
-# ПОЛУЧАЕМ ID ТОВАРОВ ПО НАЗВАНИЯМ +
+# ПОЛУЧАЕМ ID ТОВАРОВ ПО НАЗВАНИЯМ
 def get_good_ids(names):
     """вывод списка id товаров по именам товаров
     :param names: СПИСОК [название товара, название товара]
@@ -576,3 +577,23 @@ def change_user_to_admin(user_id, key):
                     return cursor.rowcount > 1
     except sqlite3.Error as e:
         print(f"Не удалось добавить права админстратора пользователю: {e}")
+        return False
+
+
+def set_on_pause(good_name):
+    """Изменяет статус товара на противоположный
+    :param good_name: название товара
+    :return: True -изменен статус, False- не изменен/ошибка"""
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT is_on_pause FROM Goods WHERE name = ?", [good_name])
+            result = cursor.fetchone()
+            if result is not None:
+                current_status = result[0]
+                new_status = 2 if current_status == 1 else 1
+                cursor.execute("UPDATE Goods SET is_on_pause = ? WHERE name = ?", [new_status, good_name])
+                return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Не удалось изменить статус товара: {e}")
+        return False
