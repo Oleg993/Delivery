@@ -15,7 +15,7 @@ def is_in_black_list(user_id):
             cursor = db.cursor()
             cursor.execute("SELECT block_status FROM Users WHERE id == ?", [user_id])
             result = cursor.fetchone()
-            return True if result[0] == 2 else False
+            return result[0] == 2 if result is not None else False
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
