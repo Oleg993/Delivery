@@ -387,25 +387,22 @@ def delete_goods(good_name):
         return False
 
 
-# ИСПРАВИТЬ ИСПРАВЛЕНИЕ ТОВАРА НЕ ПО ИД А ПО НАЗВАНИЮ ТОВАРА!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# ИЗМЕНЕНИЕ КАРТОЧКИ ТОВАРА                 ------ Исправить чтобы загружало фото-----
-# МОЖНО СДЕЛАТЬ ФУНКЦИЮ КОТОРАЯ ПРИНИМАЕТ НОВЫЕ ДАННЫЕ,
-# А ЕСЛИ ПОЛЬЗОВАТЕЛЬ ХОЧЕТ ЧТОБЫ ДАННЫЕ ОСТАЛИСЬ БЕЗ ИЗМЕНЕНИЯ, ПРОСТО НАЖИМАЕТ ВВОД
-def correct_goods(good_id, new_data):
+# ИЗМЕНЕНИЕ КАРТОЧКИ ТОВАРА
+def correct_goods(good_name, new_data):
     """изменяем карточку товара
-    берем id товара из функции get_from_category
-    new_data == [категория, название, описание, цена, время приготовления, вес,
-    изображение в формате BLOB(в бинарном виде)]"""
-    with sqlite3.connect('Delivery.db') as db:
-        cursor = db.cursor()
-        query = """UPDATE Goods SET category = ?, name = ?, good_description = ?, price = ?, time_to_ready = ?, 
-                                    weight = ?, image = ? WHERE id = ?"""
-        cursor.execute(query, [*new_data, good_id])
-        cursor.execute("SELECT * FROM Goods WHERE id = ?", [good_id])
-        updated_data = cursor.fetchone()
-        if updated_data:
-            return f"Карточка товара обновлена: \n {show_product_card(new_data[1])})"
-        return "Не удалось внести изменения."
+    :param good_name: название товара
+    :param new_data: [категория, название, описание, цена, время приготовления, вес, путь к изображению из imgs]
+    :return: True - изменен, False - не изменен """
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            query = """UPDATE Goods SET category = ?, name = ?, good_description = ?, 
+            price = ?, time_to_ready = ?, weight = ?, image = ? WHERE name = ?"""
+            cursor.execute(query, [*new_data, good_name])
+            return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Ошибка при внесении извенений в карточку товара: {e}")
+        return False
 
 
 # ДОБАВЛЕНИЕ НОВОГО АДМИНА +
@@ -464,16 +461,20 @@ def delete_admin(admin_id):
 
 
 # ИЗМЕНЕНИЕ СТАТУСА АДМИНИСТРАТОРА +
-def change_admin_status(admin_id, new_status):
-    """Изменяет статус администратора
+def change_admin_status(admin_id):
+    """Изменяет статус администратора с простого на Супер и наоборот
     :param admin_id: id админа
-    :param new_status: новый статус (1- супер админ, 2- обычный админ)
     :return: True = статус изменен, False = не изменен/ошибка """
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("UPDATE Admins SET is_super_admin = ? WHERE user_id = ?", [new_status, admin_id])
-            return cursor.rowcount > 0
+            cursor.execute("SELECT is_super_admin FROM Admins WHERE user_id = ?", [admin_id])
+            result = cursor.fetchone()
+            if result is not None:
+                current_status = result[0]
+                new_status = 2 if current_status == 1 else 1
+                cursor.execute("UPDATE Admins SET is_super_admin = ? WHERE user_id = ?", [admin_id])
+                return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус: {e}")
         return False
