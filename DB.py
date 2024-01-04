@@ -38,13 +38,13 @@ from DB_project import show_admins
 #     CREATE TABLE IF NOT EXISTS Categories(
 #         id INTEGER,
 #         good_name TEXT,
-#         category_name TEXT((40))
+#         category_name TEXT((35))
 #     );
 #
 #     CREATE TABLE IF NOT EXISTS Goods(
 #         Id INTEGER PRIMARY KEY ,
 #         category INTEGER,
-#         name TEXT(40),
+#         name TEXT(35),
 #         good_description TEXT(500),
 #         price REAL DEFAULT 0.0,
 #         time_to_ready INTEGER,
@@ -71,7 +71,7 @@ from DB_project import show_admins
 #
 #     CREATE TABLE IF NOT EXISTS Products(
 #         id INTEGER PRIMARY KEY ,
-#         name TEXT(50),
+#         name TEXT(30),
 #         validity_days INTEGER,
 #         grams_or_kg REAL,
 #         temperature REAL,
@@ -109,7 +109,7 @@ from DB_project import show_admins
 #
 #     CREATE TABLE IF NOT EXISTS Users(
 #         id INTEGER PRIMARY KEY,
-#         user_name TEXT(100),
+#         user_name TEXT(30),
 #         phone_number TEXT(30),
 #         birthday DATETIME,
 #         is_admin INTEGER DEFAULT 2,
