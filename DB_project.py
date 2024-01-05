@@ -16,7 +16,7 @@ def is_in_black_list(user_id):
             cursor = db.cursor()
             cursor.execute("SELECT block_status FROM Users WHERE id == ?", [user_id])
             result = cursor.fetchone()
-            return result[0] == 2 if result is not None else False
+            return result[0] == 1 if result is not None else False
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -77,8 +77,7 @@ def registrator(user_data):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("INSERT INTO Users(id, user_name, phone_number, birthday) VALUES (?, ?, ?, ?)",
-                           user_data)
+            cursor.execute("INSERT INTO Users(id, user_name, phone_number, birthday) VALUES (?, ?, ?, ?)", user_data)
             return cursor.rowcount == 1
     except sqlite3.Error as e:
         print(f"Ошибка при выполнении регистраиции: {e}")
@@ -100,9 +99,10 @@ def get_categories():
 
 
 # СПИСОК ТОВАРОВ В ВЫБРАННОЙ КАТЕГОРИИ ++
-def get_from_category(category_name):
+def get_from_category(category_name, is_on_pause=None):
     """возвращает список всех названий товаров в категории
     :param category_name: название категории
+    :param is_on_pause: 1- ДА, 0 - НЕТ, БЕЗ ПАРАМЕТРА - все товары
     :return: список всех названий товаров в категории [(name), (name)]"""
     try:
         with sqlite3.connect('Delivery.db') as db:
@@ -110,7 +110,11 @@ def get_from_category(category_name):
             query = ("""SELECT DISTINCT Goods.name FROM Goods 
                        JOIN Categories ON Categories.id = Goods.category
                        WHERE Categories.category_name = ?""")
-            cursor.execute(query, [category_name])
+            pause = ' and is_on_pause = ?'
+            if is_on_pause:
+                cursor.execute(query + pause, [category_name, is_on_pause])
+            else:
+                cursor.execute(query, [category_name])
             result = cursor.fetchall()
             return False if len(result) == 0 else [i[0] for i in result]
     except sqlite3.Error as e:
@@ -410,7 +414,7 @@ def add_new_admin(admin_id, name, is_super):
     """Добавояем нового администратора
     :param admin_id: id нового админа
     :param name: имя нового админа
-    :param is_super: полномочия(1 = супер, 2 = обычный)
+    :param is_super: полномочия(1 = супер, 0 = обычный)
     :return: True = добавлен. False = не добавлен/ошибка"""
     try:
         with sqlite3.connect('Delivery.db') as db:
@@ -472,7 +476,7 @@ def change_admin_status(admin_id):
             result = cursor.fetchone()
             if result is not None:
                 current_status = result[0]
-                new_status = 2 if current_status == 1 else 1
+                new_status = 1 if current_status == 0 else 0
                 cursor.execute("UPDATE Admins SET is_super_admin = ? WHERE user_id = ?", [admin_id])
                 return cursor.rowcount > 0
     except sqlite3.Error as e:
@@ -502,7 +506,7 @@ def delete_comment(com_id):
 def add_new_key(new_key, is_for_super):
     """добавляем ключ доступа в таблицу
     :param new_key: в формате int либо str.strpi()
-    :param is_for_super: в формате int (1=супер админ, 2 = обычный)
+    :param is_for_super: в формате int (1=супер админ, 0 = обычный)
     :return: True = добавлен, False = не добавлен/ошибка"""
     try:
         with sqlite3.connect('Delivery.db') as db:
@@ -517,7 +521,7 @@ def add_new_key(new_key, is_for_super):
 # ОТОБРАЖАЕМ ИМЕЮЩИЕСЯ КЛЮЧИ ДОСТУПА +
 def show_keys():
     """выводит все имебщиеся ключи и их статус
-    :return: [(id, ключ, статус)] статус 1- супер админ, 2 - обычный"""
+    :return: [(id, ключ, статус)] статус 1- супер админ, 0 - обычный"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
