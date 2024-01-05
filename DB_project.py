@@ -1,7 +1,6 @@
 import sqlite3
 import datetime
 import telebot
-from PIL import Image
 
 bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 
@@ -131,8 +130,9 @@ def show_product_card(product_name):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("""SELECT name, good_description, weight, price, ranking, image
-                           FROM Goods WHERE name = ?""", [product_name])
+            cursor.execute("""SELECT id, category, name, good_description, 
+                                    price, time_to_ready, ranking, weight, is_on_pause, image
+                                    FROM Goods WHERE name = ?""", [product_name])
             result = cursor.fetchone()
             return result if result is not None else False
     except sqlite3.Error as e:
