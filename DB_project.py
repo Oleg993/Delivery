@@ -351,6 +351,8 @@ def add_comment(good_name, user_id, content):
 
 
 # ____________________ АДМИН ПАНЕЛЬ ____________________
+
+
 # !!!!!!!!!!!!!!!! ИСПРАВИТЬ!!!!!!!!!!!!!!!!!!!!!
 # ДОБАВЛЕНИЕ НОВОГО ТОВАРА +
 def add_new_goods(params):
@@ -362,9 +364,9 @@ def add_new_goods(params):
             cursor = db.cursor()
             cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight, image)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
-            if params[0] == 1:
+            if params[0] == '1':
                 category_name = 'Блюда'
-            if params[0] == 2:
+            if params[0] == '2':
                 category_name = 'Напитки'
             cursor.execute("INSERT INTO Categories(id, good_name, category_name) VALUES(?, ?, ?)",
                            [params[0], params[1], category_name])
@@ -477,7 +479,7 @@ def change_admin_status(admin_id):
             if result is not None:
                 current_status = result[0]
                 new_status = 1 if current_status == 0 else 0
-                cursor.execute("UPDATE Admins SET is_super_admin = ? WHERE user_id = ?", [admin_id])
+                cursor.execute("UPDATE Admins SET is_super_admin = ? WHERE user_id = ?", [new_status, admin_id])
                 return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус: {e}")
@@ -506,7 +508,7 @@ def delete_comment(com_id):
 def add_new_key(new_key, is_for_super):
     """добавляем ключ доступа в таблицу
     :param new_key: в формате int либо str.strpi()
-    :param is_for_super: в формате int (1=супер админ, 0 = обычный)
+    :param is_for_super: в формате int (1= супер админ, 0 = обычный)
     :return: True = добавлен, False = не добавлен/ошибка"""
     try:
         with sqlite3.connect('Delivery.db') as db:
