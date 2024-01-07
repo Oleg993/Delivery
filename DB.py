@@ -3,9 +3,12 @@ from datetime import datetime, timedelta
 from PIL import Image
 import io
 
-from DB_project import delete_goods
-from DB_project import add_new_key
+from DB_project import show_product_card
+from DB_project import add_new_goods
 
+
+# print(show_product_card('Beer OuroPretana'))
+# add_new_goods(['2', 'Спрайт', 'что-то очень вкусное', 10.99, 10, 100, 'imgs/1924589846_1251.jpg'])
 # print(delete_goods('Спрайт'))
 # print(add_new_key(1111, 1))
 # print(add_new_key(121312, 0))

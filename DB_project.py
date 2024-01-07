@@ -355,15 +355,17 @@ def add_comment(good_name, user_id, content):
 
 # !!!!!!!!!!!!!!!! ИСПРАВИТЬ!!!!!!!!!!!!!!!!!!!!!
 # ДОБАВЛЕНИЕ НОВОГО ТОВАРА +
-def add_new_goods(params):
+def add_new_goods(params, img_id):
     """добавление нового товара
     :param params:[категория, название, описание, цена, время приготовления, вес, путь к изображению из imgs]
+    :param img_id: TG id полученного фото
     :return: True = данные загружены False = не загружены/ошибка """
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight, image)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
+            cursor.execute("INSERT INTO Images(img_path, tg_id) VALUES (?, ?)", [params[-1], img_id])
             if params[0] == '1':
                 category_name = 'Блюда'
             if params[0] == '2':
@@ -394,20 +396,22 @@ def delete_goods(good_name):
 
 
 # ИЗМЕНЕНИЕ КАРТОЧКИ ТОВАРА
-def correct_goods(good_name, new_data):
+def correct_goods(good_name, new_data, img_id):
     """изменяем карточку товара
     :param good_name: название товара
     :param new_data: [категория, название, описание, цена, время приготовления, вес, путь к изображению из imgs]
+    :param img_id: TG id полученного фото
     :return: True - изменен, False - не изменен """
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            query = """UPDATE Goods SET category = ?, name = ?, good_description = ?, 
-            price = ?, time_to_ready = ?, weight = ?, image = ? WHERE name = ?"""
-            cursor.execute(query, [*new_data, good_name])
+            cursor.execute("""UPDATE Goods SET category = ?, name = ?, good_description = ?, 
+            price = ?, time_to_ready = ?, weight = ?, image = ? WHERE name = ?""", [*new_data, good_name])
+            cursor.execute("UPDATE Images SET img_path = ?, tg_id = ? WHERE name = ?",
+                           [new_data[-1], img_id, good_name])
             return cursor.rowcount > 0
     except sqlite3.Error as e:
-        print(f"Ошибка при внесении извенений в карточку товара: {e}")
+        print(f"Ошибка при внесении изменений в карточку товара: {e}")
         return False
 
 
