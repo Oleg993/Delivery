@@ -15,7 +15,7 @@ def is_in_black_list(user_id):
             cursor = db.cursor()
             cursor.execute("SELECT block_status FROM Users WHERE id == ?", [user_id])
             result = cursor.fetchone()
-            return result[0] == 1 if result is not None else False
+            return result[0] == '1' if result is not None else False
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -46,7 +46,7 @@ def is_admin(user_id):
             cursor = db.cursor()
             cursor.execute("SELECT is_admin FROM Users WHERE Users.id == ?", [user_id])
             result = cursor.fetchone()
-            return result[0] == 1
+            return result[0] == '1'
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -62,7 +62,7 @@ def is_super_admin(user_id):
             cursor = db.cursor()
             cursor.execute("SELECT is_super_admin FROM Admins WHERE Admins.user_id == ?", [user_id])
             result = cursor.fetchone()
-            return result[0] == 1
+            return result[0] == '1'
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -97,25 +97,19 @@ def get_categories():
         raise Exception(f"Ошибка при получении списка категорий: {e}")
 
 
-# СПИСОК ТОВАРОВ В ВЫБРАННОЙ КАТЕГОРИИ ++
-def get_from_category(category_name, is_on_pause=None):
-    """возвращает список всех названий товаров в категории
+def get_from_category(category_name):
+    """возвращает список всех названий товаров в категории и статус(На паузе или нет)
     :param category_name: название категории
-    :param is_on_pause: 1- ДА, 0 - НЕТ, БЕЗ ПАРАМЕТРА - все товары
-    :return: список всех названий товаров в категории [(name), (name)]"""
+    :return: список всех названий товаров в категории [(name, 0), (name, 1)]"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            query = ("""SELECT DISTINCT Goods.name FROM Goods 
+            query = ("""SELECT DISTINCT Goods.name, Goods.is_on_pause FROM Goods 
                        JOIN Categories ON Categories.id = Goods.category
                        WHERE Categories.category_name = ?""")
-            pause = ' and is_on_pause = ?'
-            if is_on_pause:
-                cursor.execute(query + pause, [category_name, is_on_pause])
-            else:
-                cursor.execute(query, [category_name])
+            cursor.execute(query, [category_name])
             result = cursor.fetchall()
-            return False if len(result) == 0 else [i[0] for i in result]
+            return False if len(result) == 0 else [i for i in result]
     except sqlite3.Error as e:
         print(f"Не удалось загрузить список товаров категории: {e}")
         return False
@@ -353,7 +347,6 @@ def add_comment(good_name, user_id, content):
 # ____________________ АДМИН ПАНЕЛЬ ____________________
 
 
-# !!!!!!!!!!!!!!!! ИСПРАВИТЬ!!!!!!!!!!!!!!!!!!!!!
 # ДОБАВЛЕНИЕ НОВОГО ТОВАРА +
 def add_new_goods(params, img_id):
     """добавление нового товара
@@ -365,14 +358,16 @@ def add_new_goods(params, img_id):
             cursor = db.cursor()
             cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight, image)
             VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
-            cursor.execute("INSERT INTO Images(img_path, tg_id) VALUES (?, ?)", [params[-1], img_id])
-            if params[0] == '1':
-                category_name = 'Блюда'
-            if params[0] == '2':
-                category_name = 'Напитки'
-            cursor.execute("INSERT INTO Categories(id, good_name, category_name) VALUES(?, ?, ?)",
-                           [params[0], params[1], category_name])
-            return cursor.rowcount > 0
+            good_id = cursor.lastrowid
+            if good_id:
+                cursor.execute("INSERT INTO Images(id, img_path, tg_id) VALUES (?, ?, ?)", [good_id, params[-1], img_id])
+                if params[0] == '1':
+                    category_name = 'Блюда'
+                if params[0] == '2':
+                    category_name = 'Напитки'
+                cursor.execute("INSERT INTO Categories(id, good_name, category_name) VALUES(?, ?, ?)",
+                               [params[0], params[1], category_name])
+                return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -386,10 +381,14 @@ def delete_goods(good_name):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("DELETE FROM Goods WHERE name = ?", [good_name])
-            if cursor.rowcount > 0:
-                cursor.execute("DELETE FROM Categories WHERE good_name = ?", [good_name])
-            return cursor.rowcount > 0
+            cursor.execute("SELECT id FROM Goods WHERE name = ?", [good_name])
+            good_id = cursor.fetchone()
+            if good_id:
+                cursor.execute("DELETE FROM Goods WHERE name = ?", [good_name])
+                if cursor.rowcount > 0:
+                    cursor.execute("DELETE FROM Categories WHERE good_name = ?", [good_name])
+                    cursor.execute("DELETE FROM Images WHERE id = ?", [good_id[0]])
+                    return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при удалении товара: {e}")
         return False
@@ -405,11 +404,14 @@ def correct_goods(good_name, new_data, img_id):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("""UPDATE Goods SET category = ?, name = ?, good_description = ?, 
-            price = ?, time_to_ready = ?, weight = ?, image = ? WHERE name = ?""", [*new_data, good_name])
-            cursor.execute("UPDATE Images SET img_path = ?, tg_id = ? WHERE name = ?",
-                           [new_data[-1], img_id, good_name])
-            return cursor.rowcount > 0
+            cursor.execute("SELECT id FROM Goods WHERE name = ?", [good_name])
+            good_id = cursor.fetchone()
+            if good_id:
+                cursor.execute("""UPDATE Goods SET category = ?, name = ?, good_description = ?, 
+                price = ?, time_to_ready = ?, weight = ?, image = ? WHERE id = ?""", [*new_data, good_id[0]])
+                cursor.execute("UPDATE Images SET id = ?, img_path = ?, tg_id = ? WHERE id = ?",
+                               [good_id[0], new_data[-1], img_id, good_id[0]])
+                return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при внесении изменений в карточку товара: {e}")
         return False
@@ -437,15 +439,16 @@ def add_new_admin(admin_id, name, is_super):
 
 # ПОСМОТРЕТЬ КАК ПРОЩЕ КНОПКАМИ ВЫВОДИТЬ ИЛИ ТЕКСТОМ ДЛЯ ПОСЛЕДУЮЩЕГО УДАЛЕНИЯ
 # ВЫВОДИМ СПИСОК АДМИНОВ +
-def show_admins():
-    """Отображаем список имеющихся администраторов
-    :return: возвращаем список кортежей [(name, id, is_super(1-super, 2- нет)]"""
+def show_admins(user_id):
+    """Отображаем список имеющихся администраторов, кроме того который запрашивает
+    :return: возвращаем список кортежей [(name, id, is_super(1-super, 0- нет)]"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("""SELECT Users.user_name, Users.id, Admins.is_super_admin
                               FROM Users
-                              JOIN Admins ON Users.id = Admins.user_id""")
+                              JOIN Admins ON Users.id = Admins.user_id
+                              WHERE Users.id != ?""", (user_id,))
             data = cursor.fetchall()
             return data if len(data) != 0 else False
     except sqlite3.Error as e:
@@ -602,7 +605,7 @@ def set_on_pause(good_name):
             result = cursor.fetchone()
             if result is not None:
                 current_status = result[0]
-                new_status = 2 if current_status == 1 else 1
+                new_status = 1 if current_status == 0 else 0
                 cursor.execute("UPDATE Goods SET is_on_pause = ? WHERE name = ?", [new_status, good_name])
                 return cursor.rowcount > 0
     except sqlite3.Error as e:
