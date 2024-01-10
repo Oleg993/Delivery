@@ -188,7 +188,7 @@ def get_good_ids(names):
         return None
 
 
-# ЗАГРУЗКА ДАННЫХ В БД ПОСЛЕ ПОДТВЕРЖДЕНИЯ ЗАКАЗА               !!!--- прорить после создания корзины ---!!!
+# ЗАГРУЗКА ДАННЫХ В БД ПОСЛЕ ПОДТВЕРЖДЕНИЯ ЗАКАЗА               !!!--- проверить после создания корзины ---!!!
 def from_cart_into_db(user_data, price, cart, delivery_note):
     """помещаем заказ из корзины в БД
     :param user_data: данные пользователя [user_id, user_tel, address]
@@ -348,10 +348,9 @@ def add_comment(good_name, user_id, content):
 
 
 # ДОБАВЛЕНИЕ НОВОГО ТОВАРА +
-def add_new_goods(params, img_id):
+def add_new_goods(params):
     """добавление нового товара
-    :param params:[категория, название, описание, цена, время приготовления, вес, путь к изображению из imgs]
-    :param img_id: TG id полученного фото
+    :param params:[категория, название, описание, цена, время приготовления, вес, id картинки из ТГ]
     :return: True = данные загружены False = не загружены/ошибка """
     try:
         with sqlite3.connect('Delivery.db') as db:
@@ -360,7 +359,6 @@ def add_new_goods(params, img_id):
             VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
             good_id = cursor.lastrowid
             if good_id:
-                cursor.execute("INSERT INTO Images(id, img_path, tg_id) VALUES (?, ?, ?)", [good_id, params[-1], img_id])
                 if params[0] == '1':
                     category_name = 'Блюда'
                 if params[0] == '2':
@@ -387,7 +385,6 @@ def delete_goods(good_name):
                 cursor.execute("DELETE FROM Goods WHERE name = ?", [good_name])
                 if cursor.rowcount > 0:
                     cursor.execute("DELETE FROM Categories WHERE good_name = ?", [good_name])
-                    cursor.execute("DELETE FROM Images WHERE id = ?", [good_id[0]])
                     return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при удалении товара: {e}")
@@ -395,11 +392,10 @@ def delete_goods(good_name):
 
 
 # ИЗМЕНЕНИЕ КАРТОЧКИ ТОВАРА
-def correct_goods(good_name, new_data, img_id):
+def correct_goods(good_name, new_data):
     """изменяем карточку товара
     :param good_name: название товара
-    :param new_data: [категория, название, описание, цена, время приготовления, вес, путь к изображению из imgs]
-    :param img_id: TG id полученного фото
+    :param new_data: [категория, название, описание, цена, время приготовления, вес, TG id полученного фото]
     :return: True - изменен, False - не изменен """
     try:
         with sqlite3.connect('Delivery.db') as db:
@@ -409,8 +405,6 @@ def correct_goods(good_name, new_data, img_id):
             if good_id:
                 cursor.execute("""UPDATE Goods SET category = ?, name = ?, good_description = ?, 
                 price = ?, time_to_ready = ?, weight = ?, image = ? WHERE id = ?""", [*new_data, good_id[0]])
-                cursor.execute("UPDATE Images SET id = ?, img_path = ?, tg_id = ? WHERE id = ?",
-                               [good_id[0], new_data[-1], img_id, good_id[0]])
                 return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при внесении изменений в карточку товара: {e}")
