@@ -105,7 +105,7 @@ def get_from_category(category_name):
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             query = ("""SELECT DISTINCT Goods.name, Goods.is_on_pause FROM Goods 
-                       JOIN Categories ON Categories.id = Goods.category
+                       JOIN Categories ON Categories.category_name = Goods.category
                        WHERE Categories.category_name = ?""")
             cursor.execute(query, [category_name])
             result = cursor.fetchall()
@@ -119,15 +119,18 @@ def get_from_category(category_name):
 def show_product_card(product_name):
     """Отображает данные для карточки товара
     :param product_name: название товара
-    :return: возвращает картеж с данными для карточки товара
-    последний элемент кортежа - ПУТЬ К КАРТИНКЕ"""
+    :return: возвращает картеж с данными для карточки товара ПРЕДпоследний элемент кортежа - ПУТЬ К КАРТИНКЕ,
+    последний элемент - ID картинки из ТГ"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("""SELECT id, category, name, good_description, 
-                                    price, time_to_ready, ranking, weight, is_on_pause, image
+                                    price, time_to_ready, ranking, weight, is_on_pause
                                     FROM Goods WHERE name = ?""", [product_name])
             result = cursor.fetchone()
+            cursor.execute("""SELECT img_path, tg_id FROM Images WHERE good_name = ?""", [product_name])
+            img_info = cursor.fetchone()
+            result += img_info
             return result if result is not None else False
     except sqlite3.Error as e:
         print(f"Произошла ошибка при получении данных: {e}")
@@ -355,17 +358,15 @@ def add_new_goods(params):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight, image)
-            VALUES (?, ?, ?, ?, ?, ?, ?)""", params)
-            good_id = cursor.lastrowid
-            if good_id:
-                if params[0] == '1':
-                    category_name = 'Блюда'
-                if params[0] == '2':
-                    category_name = 'Напитки'
-                cursor.execute("INSERT INTO Categories(id, good_name, category_name) VALUES(?, ?, ?)",
-                               [params[0], params[1], category_name])
-                return cursor.rowcount > 0
+            cursor.execute("""INSERT INTO Goods(category, name, good_description, price, time_to_ready, weight)
+            VALUES (?, ?, ?, ?, ?, ?)""", params[:-2])
+            if cursor.rowcount > 0:
+                cursor.execute("INSERT INTO Categories(good_name, category_name) VALUES(?, ?)",
+                               [params[1], params[0]])
+                if cursor.rowcount > 0:
+                    cursor.execute("INSERT INTO Images(good_name, img_path, tg_id) VALUES(?, ?, ?)",
+                                   [params[1], params[-2], params[-1]])
+                    return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Произошла ошибка: {e}")
         return False
@@ -400,12 +401,16 @@ def correct_goods(good_name, new_data):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("SELECT id FROM Goods WHERE name = ?", [good_name])
-            good_id = cursor.fetchone()
-            if good_id:
-                cursor.execute("""UPDATE Goods SET category = ?, name = ?, good_description = ?, 
-                price = ?, time_to_ready = ?, weight = ?, image = ? WHERE id = ?""", [*new_data, good_id[0]])
-                return cursor.rowcount > 0
+            print([*new_data[:-2], good_name])
+            cursor.execute("""UPDATE Goods SET category = ?, name = ?, good_description = ?, 
+            price = ?, time_to_ready = ?, weight = ? WHERE name = ?""", [*new_data[:-2], good_name])
+            if cursor.rowcount > 0:
+                cursor.execute("""UPDATE Categories SET good_name = ?, category_name = ? WHERE good_name = ?""",
+                               [new_data[1], new_data[0], good_name])
+                if cursor.rowcount > 0:
+                    cursor.execute("""UPDATE Images SET good_name = ?, img_path = ?, tg_id = ? WHERE good_name = ?""",
+                                   [new_data[1], new_data[-2], new_data[-1], good_name])
+                    return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Ошибка при внесении изменений в карточку товара: {e}")
         return False
@@ -479,7 +484,7 @@ def change_admin_status(admin_id):
             result = cursor.fetchone()
             if result is not None:
                 current_status = result[0]
-                new_status = 1 if current_status == 0 else 0
+                new_status = '1' if current_status == '0' else '0'
                 cursor.execute("UPDATE Admins SET is_super_admin = ? WHERE user_id = ?", [new_status, admin_id])
                 return cursor.rowcount > 0
     except sqlite3.Error as e:
@@ -604,4 +609,38 @@ def set_on_pause(good_name):
                 return cursor.rowcount > 0
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус товара: {e}")
+        return False
+
+
+def show_users(user_id):
+    """Отображаем список имеющихся пользователей, для блокироваки
+    :return: возвращаем список кортежей [(name, id, block_status)]"""
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("""SELECT user_name, id, block_status FROM Users
+                              WHERE id != ?""", (user_id,))
+            data = cursor.fetchall()
+            return data if len(data) != 0 else False
+    except sqlite3.Error as e:
+        print(f"Не удалось получить список администраторов: {e}")
+        return False
+
+
+def block_unblock_user(user_id):
+    """Вносит пользователя в черный список,
+    :param user_id: id пользователя
+    :return: True = добавлен в ЧС, False = НЕ добавлен"""
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("SELECT block_status FROM Users WHERE id = ?", [user_id])
+            result = cursor.fetchone()
+            if result is not None:
+                current_status = result[0]
+                new_status = 1 if current_status == 0 else 0
+                cursor.execute("UPDATE Users SET block_status = ? WHERE id = ?", [new_status, user_id])
+                return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Не удалось изменить статус пользователя: {e}")
         return False
