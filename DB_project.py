@@ -146,7 +146,7 @@ def correct_delivery_address(delivery_address, user_id):
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("INSERT UPDATE Users SET address=? WHERE user_id = ?", [delivery_address, user_id])
+            cursor.execute("UPDATE Orders SET address=? WHERE user_id = ?", [delivery_address, user_id])
             return cursor.rowcount == 1
     except sqlite3.Error as e:
         print(f"Ошибка при добавлении адреса: {e}")
