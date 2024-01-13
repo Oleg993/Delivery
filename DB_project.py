@@ -147,7 +147,9 @@ def correct_delivery_address(delivery_address, user_id):
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("UPDATE Orders SET address=? WHERE user_id = ?", [delivery_address, user_id])
-            return cursor.rowcount == 1
+            if cursor.rowcount == 1:
+                cursor.execute("UPDATE Users SET last_address=? WHERE id = ?", [delivery_address, user_id])
+                return cursor.rowcount == 1
     except sqlite3.Error as e:
         print(f"Ошибка при добавлении адреса: {e}")
         return False
@@ -232,12 +234,10 @@ def from_cart_into_db(user_data, price, cart, delivery_time, delivery_note):
                            [user_data[0], user_data[1], user_data[2], price, 'заказ принят', current_date,
                             delivery_time, delivery_note])
             order_id = cursor.lastrowid
-
+            cursor.execute("UPDATE Users SET last_address= ? WHERE id = ?", [user_data[2], user_data[0]])
             for good in cart:
-                print(good[0])
                 cursor.execute("SELECT id FROM Goods WHERE name = ?", [good[0]])
                 good_id = cursor.fetchone()
-                print(good_id)
                 cursor.execute("INSERT INTO Goods_in_order (order_id, good_id, quantity) VALUES(?, ?, ?)",
                                [order_id, good_id[0], good[1]])
         return True
