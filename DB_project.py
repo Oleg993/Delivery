@@ -139,8 +139,8 @@ def show_product_card(product_name):
 
 # ДОБАВЛЕНИЕ АДРЕСА ДОСТАВКИ В ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
 def correct_delivery_address(delivery_address, user_id):
-    """добавление адреса в БД
-    :param delivery_address: адресс введенный пользователем в формате str
+    """Обновление адреса в БД
+    :param delivery_address: новый адресс введенный пользователем в формате str
     :param user_id: id пользователя
     :return: True если добавлен, False если ошибка"""
     try:
@@ -219,7 +219,7 @@ def from_cart_into_db(user_data, price, cart, delivery_time, delivery_note):
     """помещаем заказ из корзины в БД
     :param user_data: данные пользователя [user_id, user_tel, address]
     :param price: общая цена товара из функции get_total_price
-    :param cart: корзина СПИСОК С ВЛОЖЕННЫМИ СПИСКОМ(МИ) [[название, количество], [название, количество]]
+    :param cart: корзина СПИСОК С ВЛОЖЕННЫМ(И) СПИСКОМ(МИ) [[название, количество], [название, количество]]
     :param delivery_time: время доставки товара
     :param delivery_note: комментарий пользователя к заказу
     :return: True если все загрузилось False если нет"""
