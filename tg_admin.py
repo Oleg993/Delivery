@@ -1,7 +1,7 @@
 import sqlite3
 import telebot
 from telebot.types import (InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
-import DB_project2 as project
+import DB_project as project
 import os
 
 bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
@@ -450,12 +450,6 @@ def correct_goods(message, good_name):
         return bot.register_next_step_handler(message, correct_goods, good_name)
 
 
-@bot.message_handler(content_types=['photo'])
-def get_photo_id(message):
-    p_id = message.photo[-1].file_id
-    bot.send_photo(message.chat.id, p_id)
-
-
 # Получение фото и добавление данных в БД
 def add_to_db(message, product_data):
     file_id = message.photo[-1].file_id # ID картинки
@@ -535,7 +529,7 @@ def delete_comment(message, product):
 def add_new_key(message):
     """:param message: текст с данными ключа и статусом(1-супер, 0 - обычный)
     :return: Добавляет ключ или перезапускается в слувае ошибки"""
-    data = [i.strip() for i in message.text.split(',')]
+    data = [i.strip() for i in message.text.split('/')]
     if data[0] and data[-1] in ['1', '0']:
         project.add_new_key(data[0], data[1])
         return bot.send_message(message.chat.id, f"""Ключ доступа: {data[0]} c правами {data[-1]} категории, добавлен.\n

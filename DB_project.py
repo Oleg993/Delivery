@@ -138,14 +138,15 @@ def show_product_card(product_name):
 
 
 # ДОБАВЛЕНИЕ АДРЕСА ДОСТАВКИ В ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
-def add_delivery_address(delivery_address):
+def correct_delivery_address(delivery_address, user_id):
     """добавление адреса в БД
     :param delivery_address: адресс введенный пользователем в формате str
+    :param user_id: id пользователя
     :return: True если добавлен, False если ошибка"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("INSERT INTO Users (last_address) VALUES (?)", [delivery_address])
+            cursor.execute("INSERT UPDATE Users SET address=? WHERE user_id = ?", [delivery_address, user_id])
             return cursor.rowcount == 1
     except sqlite3.Error as e:
         print(f"Ошибка при добавлении адреса: {e}")
@@ -191,36 +192,54 @@ def get_good_ids(names):
         return None
 
 
+# ПОЛУЧАЕМ ВРЕМЯ САМОГО ДОЛГОГОТОВЯЩЕГОСЯ ТОВАРА + 30 МИНУТ
+def get_max_good_time(good_names):
+    """вывод максимального времени приготовленя блюда изи заказа
+    :param good_names: список названий товаров
+    :return: максимальное время приготовления товара в минутах + 30 минут """
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            max_time = []
+            for name in good_names:
+                cursor.execute("SELECT time_to_ready FROM Goods WHERE name = ?", [name])
+                good_time = cursor.fetchone()
+                if good_time:
+                    max_time.append(good_time[0])
+            return max(max_time) + 30
+    except sqlite3.Error as e:
+        print(f"Ошибка при получении общей id товаров: {e}")
+        return None
+
+
 # ЗАГРУЗКА ДАННЫХ В БД ПОСЛЕ ПОДТВЕРЖДЕНИЯ ЗАКАЗА               !!!--- проверить после создания корзины ---!!!
-def from_cart_into_db(user_data, price, cart, delivery_note):
+def from_cart_into_db(user_data, price, cart, delivery_time, delivery_note):
     """помещаем заказ из корзины в БД
     :param user_data: данные пользователя [user_id, user_tel, address]
     :param price: общая цена товара из функции get_total_price
-    :param cart: корзина [[название, количество], [название, количество]]
+    :param cart: корзина СПИСОК С ВЛОЖЕННЫМИ СПИСКОМ(МИ) [[название, количество], [название, количество]]
+    :param delivery_time: время доставки товара
     :param delivery_note: комментарий пользователя к заказу
     :return: True если все загрузилось False если нет"""
     try:
-        order_info = show_order_info(user_data[0])
-        max_time = sorted(order_info, key=lambda x: x[2])[-1][2]
         current_day = datetime.datetime.now()
-        result_time = current_day + datetime.timedelta(minutes=max_time)
-        delivery_time = result_time.strftime("%d.%m.%Y %H:%M")
         current_date = current_day.strftime("%d.%m.%Y")
 
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
             cursor.execute("""INSERT INTO Orders (user_id, user_tel, address, total_price, order_status, order_date, 
                delivery_time, user_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-                           [user_data[0], user_data[1], user_data[2], price, 'заказ принят', current_date, delivery_time,
-                            delivery_note])
+                           [user_data[0], user_data[1], user_data[2], price, 'заказ принят', current_date,
+                            delivery_time, delivery_note])
             order_id = cursor.lastrowid
 
             for good in cart:
+                print(good[0])
                 cursor.execute("SELECT id FROM Goods WHERE name = ?", [good[0]])
                 good_id = cursor.fetchone()
+                print(good_id)
                 cursor.execute("INSERT INTO Goods_in_order (order_id, good_id, quantity) VALUES(?, ?, ?)",
                                [order_id, good_id[0], good[1]])
-
         return True
     except sqlite3.Error as e:
         print(f"Ошибка при загрузке заказа в БД: {e}")
@@ -644,3 +663,6 @@ def block_unblock_user(user_id):
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус пользователя: {e}")
         return False
+
+
+
