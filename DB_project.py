@@ -139,7 +139,7 @@ def show_product_card(product_name):
 
 # ДОБАВЛЕНИЕ АДРЕСА ДОСТАВКИ В ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
 def correct_delivery_address(delivery_address, user_id):
-    """Обновление адреса в БД
+    """Изменение адреса пользователя в БД
     :param delivery_address: новый адресс введенный пользователем в формате str
     :param user_id: id пользователя
     :return: True если добавлен, False если ошибка"""
