@@ -244,18 +244,18 @@ def from_cart_into_db(user_data, price, cart, delivery_time, delivery_note):
         return False
 
 
-# УДАЛЕНИЕ ТОВАРА ИЗ ТАБЛИЦЫ (ИСПОЛЬЗОВАТЬ КОГДА ТОВАР ДОСТАВЛЕН)
-def del_from_orders(user_id):
-    """удаляем заказ после доставления
-    :param user_id: id пользователя чей заказ нужно удалить
-    :return: True = удален, False = не удален"""
+# ИЗМЕНЕНИЕ СТАТУСА ЗАКАЗА
+def change_delivery_status(order_id):
+    """изменяем статус заказа после доставления на "доставлено"
+    :param order_id: id заказа в котором нужно изменить статус
+    :return: True = изменен на "доставлено", False = не изменен"""
     try:
         with sqlite3.connect('Delivery.db') as db:
             cursor = db.cursor()
-            cursor.execute("DELETE FROM Orders WHERE user_id = ?", [user_id])
-            return cursor.rowcount == 0
+            cursor.execute("UPDATE Orders SET order_status = ? WHERE id = ?", ["доставлено", order_id])
+            return cursor.rowcount > 0
     except sqlite3.Error as e:
-        print(f"Ошибка при удалении заказа из БД: {e}")
+        print(f"Ошибка при изменении статуса заказа: {e}")
         return False
 
 
@@ -661,6 +661,3 @@ def block_unblock_user(user_id):
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус пользователя: {e}")
         return False
-
-
-
