@@ -259,6 +259,21 @@ def change_delivery_status(order_id):
         return False
 
 
+# УДАЛЕНИЕ ЗАКАЗА(ОТМЕНА)
+def delete_order(order_id):
+    """удаляет заказ если пользователь решил отменить
+    :param order_id: id заказа в который нужно удалить
+    :return: True = удален, False = НЕ удален"""
+    try:
+        with sqlite3.connect('Delivery.db') as db:
+            cursor = db.cursor()
+            cursor.execute("DELETE FROM Orders WHERE id = ?", [ order_id])
+            return cursor.rowcount > 0
+    except sqlite3.Error as e:
+        print(f"Ошибка при удалении заказа: {e}")
+        return False
+
+
 # НОМЕР ЗАКАЗА И ВРЕМЯ ПРИГОТОВЛЕНИЯ + 30 МИН. +                !!!--- перепроверить после создания корзины ---!!!
 def show_order_info(user_id):
     """Показывает информацию о заказах пользователя, кроме доставленных заказов.
@@ -661,3 +676,6 @@ def block_unblock_user(user_id):
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус пользователя: {e}")
         return False
+
+
+
