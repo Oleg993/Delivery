@@ -676,6 +676,3 @@ def block_unblock_user(user_id):
     except sqlite3.Error as e:
         print(f"Не удалось изменить статус пользователя: {e}")
         return False
-
-
-
