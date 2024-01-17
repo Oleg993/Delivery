@@ -5,8 +5,7 @@ import telebot
 bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 
 
-class UserInfo:
-    """Содержит методы: is_in_black_list, is_new, is_admin, is_super_admin, get_user_data, show_users"""
+class DataBase:
     def __init__(self):
         self.db_file = 'Delivery.db'
 
@@ -93,13 +92,6 @@ class UserInfo:
             print(f"Не удалось получить список администраторов: {e}")
             return False
 
-
-class Registrator:
-    """Содержит методы: registrator"""
-
-    def __init__(self):
-        self.db_file = 'Delivery.db'
-
     def registrator(self, user_data):
         """принимает список данных и добавляет пользователя в БД
         :param user_data: [id, user_name, phone_number, birthday (формат ввода '01.01.2023')]
@@ -112,13 +104,6 @@ class Registrator:
         except sqlite3.Error as e:
             print(f"Ошибка при выполнении регистраиции: {e}")
             return False
-
-
-class Categories:
-    """Содержит методы: get_categories, get_from_category"""
-
-    def __init__(self):
-        self.db_file = 'Delivery.db'
 
     def get_categories(self):
         """возвращаем список названий категорий
@@ -148,12 +133,6 @@ class Categories:
         except sqlite3.Error as e:
             print(f"Не удалось загрузить список товаров категории: {e}")
             return False
-
-
-class Good:
-    """Содержит методы: show_product_card, get_total_price, get_good_ids, get_max_good_time"""
-    def __init__(self):
-        self.db_file = 'Delivery.db'
 
     def show_product_card(self, product_name):
         """Отображает данные для карточки товара
@@ -228,12 +207,6 @@ class Good:
             print(f"Ошибка при получении общей id товаров: {e}")
             return None
 
-
-class Delivery:
-    """Содержит методы: from_cart_into_db, correct_delivery_address, change_delivery_status"""
-    def __init__(self):
-        self.db_file = 'Delivery.db'
-
     def from_cart_into_db(self, user_data, price, cart, delivery_time, delivery_note):
         """помещаем заказ из корзины в БД
         :param user_data: данные пользователя [user_id, user_tel, address]
@@ -291,12 +264,6 @@ class Delivery:
             print(f"Ошибка при изменении статуса заказа: {e}")
             return False
 
-
-class Order:
-    """Содержит методы: show_order_info, delete_order"""
-    def __init__(self):
-        self.db_file = 'Delivery.db'
-
     def show_order_info(self, user_id):
         """Показывает информацию о заказах пользователя, кроме доставленных заказов.
         :param user_id: id пользователя
@@ -331,12 +298,6 @@ class Order:
         except sqlite3.Error as e:
             print(f"Ошибка при удалении заказа: {e}")
             return False
-
-
-class Comments:
-    """Содержит методы: show_comments, add_comment, delete_comment"""
-    def __init__(self):
-        self.db_file = 'Delivery.db'
 
     def show_comments(self, good_name):
         """Выводит все комментарии в виде [(comment_id, коммент, пользователь)]
@@ -395,14 +356,6 @@ class Comments:
             return False
 
 # ____________________ АДМИН ПАНЕЛЬ ____________________
-
-
-class AdminManager:
-    """Содержит методы: get_admin_data, add_new_admin, show_admins, delete_admin,
-    change_admin_status, change_user_to_admin, block_unblock_user"""
-    def __init__(self):
-        self.db_file = 'Delivery.db'
-
     def get_admin_data(self, user_id):
         """Получение данных администратора
         :param user_id: id пользователя
@@ -525,12 +478,6 @@ class AdminManager:
             print(f"Не удалось изменить статус пользователя: {e}")
             return False
 
-
-class AdminGoods:
-    """Содержит методы: add_new_goods, delete_goods, correct_goods, set_on_pause"""
-    def __init__(self):
-        self.db_file = 'Delivery.db'
-
     def add_new_goods(self, params):
         """Добавление нового товара
         :param params:[категория, название, описание, цена, время приготовления, вес, id картинки из ТГ]
@@ -608,13 +555,6 @@ class AdminGoods:
         except sqlite3.Error as e:
             print(f"Не удалось изменить статус товара: {e}")
             return False
-
-
-class AdminKeys:
-    """Содержит методы: add_new_key, show_keys, delete_key, is_valid_key"""
-
-    def __init__(self):
-        self.db_file = 'Delivery.db'
 
     def add_new_key(self, new_key, is_for_super):
         """Добавление ключа доступа в таблицу

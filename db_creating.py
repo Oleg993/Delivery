@@ -142,7 +142,7 @@ import sqlite3
 #         is_for_super INTEGER DEFAULT 0
 #     );
 #     """
-
+#
 #     cursor.executescript(query)
 
 
