@@ -1,10 +1,7 @@
-import sqlite3
-import telebot
 from telebot.types import (InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton)
-import DB_project as project
+from db_classes import *
 import os
 
-bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 # Список названий для кнопок СпуерАдмин
 super_admin_btns = ['Добавить товар', 'Удалить товар', 'Товар на паузу', 'Редактировать товар',
                     'Добавить администратора', 'Удалить администратора', 'Изменить статус администратора',
@@ -24,6 +21,16 @@ correct_data_text = """Введите новые данные о товаре:\n
 Цена(формат 1.99)/\nВремя приготовления(30- если 30 минут)/\nВес товара(в граммах)/
 \nВвод данных через слэш '/'."""
 
+ctg_names = {'Удалить товар': 'delete_good', 'Товар на паузу': 'pause_good', 'Редактировать товар': 'edit_good',
+             'Редактировать комментарии': 'edit_comments'}
+
+
+def found_ctg(value):
+    for k, v in ctg_names.items():
+        if v == value:
+            return k
+    return None
+
 
 def first_markup():
     """Кнопки: Меню пользователя, Панель администратора"""
@@ -33,25 +40,22 @@ def first_markup():
 
 
 def markup_back():
-    """Возвращает в главное меню"""
+    """Возвращение в главное меню"""
     markup = InlineKeyboardMarkup()
-    markup.add(InlineKeyboardButton('В меню', callback_data='admin_menu'))
+    markup.add(InlineKeyboardButton('Основное меню', callback_data='admin_menu'))
     return markup
 
 
-# Меню категорий товаров
 def categories_markup(category_name=None, start_ind=0):
-    """:param category_name: название категории для удаления, редактирования и тд. добавляет приставку
+    """:param category_name: Название категории для удаления, редактирования и тд. добавляет приставку
     :param start_ind: Индекс начала отображения товаров
-    :return: Возвращает меню категорий товаров с разными callback кнопками в зависимости от категории """
-    categories = project.get_categories()
+    :return: Возвращает меню категорий с разными callback кнопками в зависимости от необходимого действия"""
+    categories = Categories().get_categories()
     finish_ind = min(len(categories), start_ind + 5)
     start_ind = max(start_ind, 0)
     if not categories:
         return 'Нет доступных категорий.'
     else:
-        ctg_names = {'Удалить товар': 'delete_category', 'Товар на паузу': 'pause_category',
-                     'Редактировать товар': 'edit_category', 'Редактировать комментарии': 'edit_comments'}
         markup = InlineKeyboardMarkup()
         if category_name is not None:
             for category in categories[start_ind:finish_ind]:
@@ -60,7 +64,7 @@ def categories_markup(category_name=None, start_ind=0):
                 markup.add(InlineKeyboardButton('Назад',
                                                 callback_data=f"КтгНазад,{ctg_names[category_name]},{start_ind - 5}"))
             if finish_ind < len(categories):
-                markup.add(InlineKeyboardButton('Вперед',
+                markup.add(InlineKeyboardButton('Далее',
                                                 callback_data=f"КтгВперед,{ctg_names[category_name]},{start_ind + 5}"))
         else:
             for category in categories[start_ind:finish_ind]:
@@ -69,42 +73,43 @@ def categories_markup(category_name=None, start_ind=0):
                 markup.add(InlineKeyboardButton('Назад', callback_data=f"ПростоКатегория,{start_ind - 5}"))
             if finish_ind < len(categories):
                 markup.add(InlineKeyboardButton('Вперед', callback_data=f"ПростоКатегория,{start_ind + 5}"))
-        markup.add(InlineKeyboardButton('Назад', callback_data='admin_menu'))
+        markup.add(InlineKeyboardButton('Основное меню', callback_data='admin_menu'))
     return markup
 
 
 def products_markup(category, ctg_action=None, start_ind=0):
-    """:param category: Название категории как в таблице
+    """Меню товаров в категории
+    :param category: Название категории как в таблице
     :param ctg_action: Приставка перед названием категории для передачи в callback
     :param start_ind: Индекс начала отображения товаров
     :return: Кнопки с разным callback в зависимости от выбранного действия"""
-    goods = project.get_from_category(category)
+    goods = Categories().get_from_category(category)
     finish_ind = min(len(goods), start_ind + 5)
     start_ind = max(start_ind, 0)
     markup = InlineKeyboardMarkup()
-    actions = {'delete_category': 'del', 'pause_category': 'pause', 'edit_category': 'edit', 'edit_comments': 'd_com'}
+    actions = {'delete_good': 'del_good', 'pause_good': 'p_good', 'edit_good': 'ed_good', 'edit_comments': 'del_coms'}
     if not ctg_action:
         for good in goods[start_ind:finish_ind]:
             markup.add(InlineKeyboardButton(good[0], callback_data=f"for_user,{good[0]}"))
         if start_ind >= 5:
             markup.add(InlineKeyboardButton('Назад', callback_data=f"Назад_user,{category},{start_ind-5}"))
         if finish_ind < len(goods):
-            markup.add(InlineKeyboardButton('Вперед', callback_data=f"Вперед_user,{category},{start_ind+5}"))
-    if ctg_action == 'pause_category':
+            markup.add(InlineKeyboardButton('Далее', callback_data=f"Вперед_user,{category},{start_ind+5}"))
+    if ctg_action == 'pause_good':
         for good in goods[start_ind:finish_ind]:
             markup.add(InlineKeyboardButton(f"{good[0]} - {good[1]}", callback_data=f"{actions[ctg_action]} {good}"))
         if start_ind >= 5:
             markup.add(InlineKeyboardButton('Назад', callback_data=f"Назад,{category},{ctg_action},{start_ind-5}"))
         if finish_ind < len(goods):
             markup.add(InlineKeyboardButton('Вперед', callback_data=f"Вперед,{category},{ctg_action},{start_ind+5}"))
-    elif ctg_action in ['delete_category', 'edit_category', 'edit_comments']:
+    elif ctg_action in ['delete_good', 'edit_good', 'edit_comments']:
         for good in goods[start_ind:finish_ind]:
             markup.add(InlineKeyboardButton(good[0], callback_data=f"{actions[ctg_action]} {good[0]}"))
         if start_ind >= 5:
             markup.add(InlineKeyboardButton('Назад', callback_data=f"Назад,{category},{ctg_action},{start_ind-5}"))
         if finish_ind < len(goods):
             markup.add(InlineKeyboardButton('Вперед', callback_data=f"Вперед,{category},{ctg_action},{start_ind+5}"))
-    markup.add(InlineKeyboardButton('В меню', callback_data=f"prod_m {category} {ctg_action}"))
+    markup.add(InlineKeyboardButton('Меню категории', callback_data=f"{found_ctg(ctg_action)}"))
     return markup
 
 
@@ -121,13 +126,12 @@ def admin_menu(status=None):
     return markup
 
 
-# Меню список админов
 def show_admins(delete_or_change, user_id, start_ind=0):
-    """:param delete_or_change: 'delete' - для удаления, 'change' - изменение статуса админа
+    """:param delete_or_change: 'del_adm' - для удаления, 'change_adm' - изменение статуса админа
     :param user_id: id админа
     :param start_ind: id индекс с которого отображаются ключи
     :return: Кнопки с именами админов кроме того админиа который вызывает(чтобы сам себя не удалил)"""
-    admins = project.show_admins(user_id)
+    admins = AdminManager().show_admins(user_id)
     finish_ind = min(len(admins), start_ind + 5)
     start_ind = max(start_ind, 0)
     if not admins:
@@ -147,22 +151,20 @@ def show_admins(delete_or_change, user_id, start_ind=0):
         return markup
 
 
-# Список комментариев
 def show_comments(good_name):
     """:param good_name: Название товара
     :return: Список комментариев"""
-    comments = project.show_comments(good_name)
+    comments = Comments().show_comments(good_name)
     if comments == 'Комментарии отсутствуют':
         return 'Комментарии отсутствуют'
     else:
         return '\n'.join([f"{i+1}) id:{comment[0]}, content:{comment[1]}" for i, comment in enumerate(comments)])
 
 
-# Список ключей доступа
 def show_keys(start_ind=0):
     """:param start_ind: индекс с которого отображаются ключи
     :return:Возвращает список доступных ключей доступа."""
-    keys = project.show_keys()
+    keys = AdminKeys().show_keys()
     finish_ind = min(len(keys), start_ind + 5)
     start_ind = max(start_ind, 0)
     if keys:
@@ -188,9 +190,9 @@ def start(message):
     if message.text == '/start':
         user_id = message.from_user.id
         user_name = message.from_user.first_name
-        if not project.is_in_black_list(user_id):
-            if not project.is_new(user_id):
-                if not project.is_admin(user_id):
+        if not UserInfo().is_in_black_list(user_id):
+            if not UserInfo().is_new(user_id):
+                if not UserInfo().is_admin(user_id):
                     bot.send_message(message.chat.id, f"Привет {user_name} выбирай.", reply_markup=categories_markup())
                 else:
                     bot.send_message(message.chat.id, f"Привет {user_name} выбирай.", reply_markup=first_markup())
@@ -206,9 +208,9 @@ def show_main_panel(message):
     """Проверяет какими полномочиями наделен Админ для отображения меню
     :return: отображает админ панель в зависимости от полномочий админа"""
     user_name = message.from_user.first_name
-    if project.is_admin(message.from_user.id):
+    if UserInfo().is_admin(message.from_user.id):
         if message.text == 'Панель администратора':
-            if project.is_super_admin(message.from_user.id):
+            if UserInfo().is_super_admin(message.from_user.id):
                 bot.send_message(message.chat.id, f"Привет {user_name}, ты наделен правами Супер Администратора.",
                                  reply_markup=admin_menu('super'))
             else:
@@ -221,11 +223,10 @@ def show_main_panel(message):
                          reply_markup=first_markup())
 
 
-# Добавление фото к полученным данным по новому товару. Запуск функции с загрузкой данных в БД
 def add_photo(data):
     """Добавление фото к полученным данным, запуск функции с загрузкой в БД
     :param data: данные товара введенные пользователем
-    :return: Запуск функции с загрузкой данных в БД, Перезапуск запроса на добавление фото если ошибка"""
+    :return: Запуск функции с загрузкой данных в БД/ Перезапуск запроса на добавление фото если ошибка"""
     product_data = [i.strip() for i in data.text.split('/')]
     markup = InlineKeyboardMarkup()
     markup.add(InlineKeyboardButton('Отмена', callback_data='admin_menu'))
@@ -238,11 +239,10 @@ def add_photo(data):
         return bot.register_next_step_handler(data, add_photo)
 
 
-# Изменение карточки товара
 def correct_goods(message, good_name):
     """:param message: Данные полученные от пользователя
     :param good_name: Название продукта
-    :return: Запуск функции загрузки в БД или перезапуск данной функции в случае не верно введенных данных"""
+    :return: Запуск функции загрузки в БД/ перезапуск функции в случае не верно введенных данных"""
     new_data = [i.strip() for i in message.text.split('/')]
     if len(new_data) == 6:
         bot.send_message(message.chat.id, f"Добавьте фотографию для товара:", reply_markup=markup_back())
@@ -252,41 +252,47 @@ def correct_goods(message, good_name):
         return bot.register_next_step_handler(message, correct_goods, good_name)
 
 
-# Получение фото и добавление данных в БД
 def add_to_db(message, product_data):
-    file_id = message.photo[-1].file_id # ID картинки
-    file_path = bot.get_file(file_id).file_path # путь для скачивания картинки из ТГ
-    file_extension = os.path.splitext(file_path)[1] # забираем формат картинки
-    img_path = f'imgs/{file_id}{file_extension}' # путь к картинке в папке
-    downloaded_file = bot.download_file(file_path) # скачиваем картинку из ТГ
+    """Получение фото и добавление данных в БД
+    :param message: Картинка
+    :param product_data: Данные по товару
+    :return: Продукт добавлен/ Что-то пошло не так"""
+    photo_id = message.photo[-1].file_id
+    file_path = bot.get_file(photo_id).file_path
+    file_extension = os.path.splitext(file_path)[1]
+    img_path = f'imgs/{photo_id}{file_extension}'
+    downloaded_file = bot.download_file(file_path)
 
     # сохраняем картинку в папку
     with open(img_path, 'wb') as new_img:
         new_img.write(downloaded_file)
 
-    product_data.extend([img_path, file_id])
-    if project.add_new_goods(product_data):
+    product_data.extend([img_path, photo_id])
+    if AdminGoods().add_new_goods(product_data):
         bot.send_message(message.chat.id, f"Продукт: '{product_data[1]}' успешно добавлен.", reply_markup=markup_back())
     else:
         bot.send_message(message.chat.id, f"Что-то пошло не так!!!", reply_markup=markup_back())
 
 
-# Внесение изменений в карточку товара
 def add_correct_data_to_db(message, new_data, good_name):
-    file_id = message.photo[-1].file_id  # ID картинки
-    file_path = bot.get_file(file_id).file_path  # путь для скачивания картинки из ТГ
+    """:param message: Картинка
+    :param new_data: Новые данные по товару
+    :param good_name: Название товара
+    :return: Карточка измененного товара/ Что-то пошло не так"""
+    photo_id = message.photo[-1].file_id  # ID картинки
+    file_path = bot.get_file(photo_id).file_path  # путь для скачивания картинки из ТГ
     file_extension = os.path.splitext(file_path)[1]  # забираем формат картинки
-    img_path = f'imgs/{file_id}{file_extension}'  # путь к картинке в папке
+    img_path = f'imgs/{photo_id}{file_extension}'  # путь к картинке в папке
     downloaded_file = bot.download_file(file_path)  # скачиваем картинку из ТГ
 
     with open(img_path, 'wb') as new_img:
         new_img.write(downloaded_file)
 
-    new_data.extend([img_path, file_id])
+    new_data.extend([img_path, photo_id])
     try:
-        if project.correct_goods(good_name, new_data):
+        if AdminGoods().correct_goods(good_name, new_data):
             bot.send_message(message.chat.id, f"Продукт: '{new_data[1]}' успешно изменен.")
-            bot.send_photo(message.chat.id, file_id,
+            bot.send_photo(message.chat.id, photo_id,
                            caption=f"""Категория: {new_data[0]}\nНазвание: {new_data[1]}\nОписание: {new_data[2]}
 Цена: {new_data[3]}\nВремя приготоваления: {new_data[4]}\nВес: {new_data[5]}""", reply_markup=markup_back())
     except sqlite3.Error as e:
@@ -295,10 +301,10 @@ def add_correct_data_to_db(message, new_data, good_name):
 
 def add_new_admin(message):
     """:param message: id, имя и статус нового админа
-    :return: добавляет в базу или перезапускается в случае ошибки"""
+    :return: добавляет в базу/ перезапускается в случае ошибки"""
     data = [i.strip() for i in message.text.split('/')]
     if data[0].isdigit and data[-1] in ['0', '1']:
-        project.add_new_admin(int(data[0]), data[1], data[2])
+        AdminManager().add_new_admin(int(data[0]), data[1], data[2])
         return bot.send_message(message.chat.id, f"Администратор: {data[1]} c правами {data[-1]} категории, добавлен.",
                                 reply_markup=markup_back())
     else:
@@ -307,12 +313,11 @@ id/ имя/ статус цифрой(1 - суперАдмин, 0 - обычны
         return bot.register_next_step_handler(message, add_new_admin)
 
 
-# Удаление коментариев
 def delete_comment(message, product):
     """:param message: id коммента
     :param product: название продукта
-    :return: удаялет комментарий или перезаупускает функцию в случае ошибки"""
-    if project.delete_comment(message.text):
+    :return: удаялет комментарий / перезаупускает функцию в случае ошибки"""
+    if Comments().delete_comment(message.text):
         comments = show_comments(product)
         if comments != 'Комментарии отсутствуют':
             bot.send_message(message.chat.id, f"""Комментарий id: {message.text}, удален.
@@ -324,13 +329,12 @@ def delete_comment(message, product):
         return bot.register_next_step_handler(message, delete_comment, product)
 
 
-# Добавление нового ключа
 def add_new_key(message):
     """:param message: текст с данными ключа и статусом(1-супер, 0 - обычный)
-    :return: Добавляет ключ или перезапускается в слувае ошибки"""
+    :return: Добавляет ключ / перезапускается в случае ошибки"""
     data = [i.strip() for i in message.text.split('/')]
     if data[0] and data[-1] in ['1', '0']:
-        project.add_new_key(data[0], data[1])
+        AdminKeys().add_new_key(data[0], data[1])
         return bot.send_message(message.chat.id, f"""Ключ доступа: {data[0]} c правами {data[-1]} категории, добавлен.\n
 Введите новый ключ доступа в формате: ключ/ статус(1 - суперАдмин, 0 - обычный)""", reply_markup=markup_back())
     else:
@@ -340,12 +344,14 @@ def add_new_key(message):
 
 
 def block_unblock_user(message):
+    """:param message: Данные пользователя который вызывает функцию
+    :return: Пользователь заблокирован/разблокирован / Что-то пошло не так"""
     main_user = message.from_user.id
     try:
         if message.text.isdigit():
             user_to_change = int(message.text)
-            if project.block_unblock_user(user_to_change):
-                users = project.show_users(main_user)
+            if AdminManager().block_unblock_user(user_to_change):
+                users = UserInfo().show_users(main_user)
                 res = '\n'.join([f"Имя: {i[0]}, id:{i[1]}, статус: {i[2]}" for i in users])
                 bot.send_message(message.chat.id, f"""Пользователь с ID:{user_to_change} заблокирован/разблокирован.\n
 Список пользователей:\n(введите ID пользователя для блокировки/разблокироваки
@@ -353,8 +359,8 @@ def block_unblock_user(message):
                 bot.register_next_step_handler(message, block_unblock_user)
         else:
             bot.send_message(message.chat.id, f"""Введен некорректный ID пользователя!\n
-Введите ID пользователя для блокировки/разблокироваки\n(Статус: 1-заблокирован, 0 -не заблокирован))\n\n"""
-                             , reply_markup=markup_back())
+Введите ID пользователя для блокировки/разблокироваки\n(Статус: 1-заблокирован, 0 -не заблокирован))\n\n""",
+                             reply_markup=markup_back())
             bot.register_next_step_handler(message, block_unblock_user)
     except sqlite3.Error as e:
         bot.send_message(message.chat.id, f"Что-то пошло не так: {e}", reply_markup=markup_back())
@@ -362,7 +368,6 @@ def block_unblock_user(message):
 
 @bot.callback_query_handler(func=lambda call: True)
 def show_admin_panel(call):
-    print(call.data)
     user_id = call.from_user.id
     chat = call.message.chat.id
     if call.data == 'Добавить товар':
@@ -378,7 +383,7 @@ def show_admin_panel(call):
 
     elif call.data.split(',')[0] in ['ПростоКатегория', 'ПростоКатегория']:
         ctg_name = call.data.split(',')[1].strip()
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.send_message(chat, "Выбирай:", reply_markup=products_markup(ctg_name))
             bot.send_message(chat, f"Для выхода в главное меню? --> '/start'")
 
@@ -388,75 +393,76 @@ id/ имя/ статус цифрой(1 - суперАдмин, 0 - обычны
         bot.register_next_step_handler(call.message, add_new_admin)
 
     elif call.data == 'Удалить администратора':
-        admins_markup = show_admins('delete', user_id)
+        admins_markup = show_admins('del_adm', user_id)
         if isinstance(admins_markup, str):
             bot.send_message(chat, admins_markup, reply_markup=markup_back())
         else:
             bot.send_message(chat, "Список администраторов:\n(нажмите на кнопку для удаления)",
                              reply_markup=admins_markup)
 
-    elif call.data.split()[0] == 'delete':
-        if project.delete_admin(call.data[6:].strip()):
-            admins_markup = show_admins('delete', user_id)
+    elif call.data.split()[0] == 'del_adm':
+        if AdminManager().delete_admin(call.data[7:].strip()):
+            admins_markup = show_admins('del_adm', user_id)
             if isinstance(admins_markup, str):
                 bot.send_message(chat, admins_markup, reply_markup=markup_back())
             else:
                 bot.edit_message_reply_markup(chat_id=chat, message_id=call.message.message_id,
-                                              reply_markup=show_admins('delete', user_id))
-                bot.send_message(chat, f"Администратор id: {call.data[6:].strip()} удален.")
+                                              reply_markup=show_admins('del_adm', user_id))
+                bot.send_message(chat, f"Администратор id: {call.data[7:]} удален.", reply_markup=markup_back())
 
     elif call.data == 'Изменить статус администратора':
-        admins_markup = show_admins('change', user_id)
+        admins_markup = show_admins('change_adm', user_id)
         if isinstance(admins_markup, str):
             bot.send_message(chat, admins_markup, reply_markup=markup_back())
         else:
             bot.send_message(chat, "Список администраторов:\n(нажмите на кнопку для изменения статуса)",
-                             reply_markup=show_admins('change', user_id))
+                             reply_markup=show_admins('change_adm', user_id))
 
-    elif call.data.split()[0] == 'change':
-        if project.change_admin_status(call.data[6:].strip()):
-            admins_markup = show_admins('change', user_id)
+    elif call.data.split()[0] == 'change_adm':
+        if AdminManager().change_admin_status(call.data[10:].strip()):
+            admins_markup = show_admins('change_adm', user_id)
             if isinstance(admins_markup, str):
                 bot.send_message(chat, admins_markup, reply_markup=markup_back())
             else:
                 bot.edit_message_reply_markup(chat_id=chat, message_id=call.message.message_id,
-                                              reply_markup=show_admins('change', user_id))
+                                              reply_markup=show_admins('change_adm', user_id))
                 bot.send_message(chat, f"Статус администратора id: {call.data[6:].strip()} изменен.")
 
-    elif call.data.split()[0] in ['delete_category', 'pause_category', 'edit_category', 'edit_comments']:
-        cats = {'delete_category': 'удаления', 'pause_category': 'установки/снятия паузы\n0- не на паузе, 1- на паузе',
-                'edit_category': 'редактирования', 'edit_comments': 'редактирования'}
-        bot.send_message(chat, f"Выберите товар для {cats[call.data.split()[0]]}:",
+    elif call.data.split()[0] in ['delete_good', 'pause_good', 'edit_good', 'edit_comments']:
+        catgs = {'delete_good': 'удаления', 'pause_good': 'установки/снятия паузы\n0- не на паузе, 1- на паузе',
+                 'edit_good': 'редактирования', 'edit_comments': 'редактирования'}
+        bot.send_message(chat, f"Выберите товар для {catgs[call.data.split()[0]]}:",
                          reply_markup=products_markup(call.data.split()[-1], call.data.split()[0]))
 
-    elif call.data.split()[0] == 'del':
-        if project.delete_goods(call.data[4:]):
+    elif call.data.split()[0] == 'del_good':
+        if AdminGoods().delete_goods(call.data[8:]):
             bot.send_message(chat, f"Товар: {call.data[4:]} удален.", reply_markup=categories_markup('Удалить товар'))
 
-    elif call.data.split()[0] == 'pause':
-        if project.set_on_pause(call.data[8:-5]):
-            bot.send_message(chat, f"Установена/снята пауза для товара: {call.data[8:-5].strip()}.",
+    elif call.data.split()[0] == 'p_good':
+        if AdminGoods().set_on_pause(call.data[9:-5]):
+            bot.send_message(chat, f"Установена/снята пауза для товара: {call.data[9:-5].strip()}.",
                              reply_markup=categories_markup('Товар на паузу'))
 
-    elif call.data.split()[0] == 'edit':
-        product = call.data[5:]
-        old_product = project.show_product_card(product)
-        good_name = old_product[2]
+    elif call.data.split()[0] == 'ed_good':
+        product = call.data[8:]
+        old_product = Good().show_product_card(product)
         markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton('Назад', callback_data='admin_menu'))
+        markup.add(InlineKeyboardButton('Меню категории', callback_data='Редактировать товар'))
         bot.send_photo(chat, old_product[-1], caption=f"""Категория: {old_product[1]}\nНазвание: {old_product[2]}
 Описание: {old_product[3]}\nЦена: {old_product[4]}\nВремя приготовления: {old_product[5]}\nВес: {old_product[7]}""")
         bot.send_message(chat, correct_data_text, reply_markup=markup)
-        bot.register_next_step_handler(call.message, correct_goods, good_name)
+        bot.register_next_step_handler(call.message, correct_goods, old_product[2])
 
-    elif call.data.split()[0] == 'd_com':
-        product = call.data[6:]
+    elif call.data.split()[0] == 'del_coms':
+        product = call.data[9:]
         comments = show_comments(product)
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton('Меню категории', callback_data='Редактировать комментарии'))
         if comments == 'Комментарии отсутствуют':
-            bot.send_message(chat, comments, reply_markup=markup_back())
+            bot.send_message(chat, comments, reply_markup=markup)
         else:
             bot.send_message(chat, f"""Список доступных комментариев:\nВведите id комментария, 
-который необходимо удалить:\n\n{comments}""", reply_markup=markup_back())
+который необходимо удалить:\n\n{comments}""", reply_markup=markup)
         bot.register_next_step_handler(call.message, delete_comment, product)
 
     elif call.data == 'Добавить ключ доступа':
@@ -472,7 +478,7 @@ id/ имя/ статус цифрой(1 - суперАдмин, 0 - обычны
             bot.send_message(chat, "Список доступных ключей:\n(нажмите для удаления)", reply_markup=keys_markup)
 
     elif call.data == 'Блокировка пользователей':
-        users = project.show_users(user_id)
+        users = UserInfo().show_users(user_id)
         res = '\n'.join([f"Имя: {i[0]}, id:{i[1]}, статус: {i[2]}" for i in users])
         if len(users) == 0:
             bot.send_message(chat, 'Нет других пользователей', reply_markup=markup_back())
@@ -484,38 +490,24 @@ id/ имя/ статус цифрой(1 - суперАдмин, 0 - обычны
 
     elif call.data.split()[0] == 'del_key':
         key_id = call.data[8:].strip()
-        project.delete_key(key_id)
+        AdminKeys().delete_key(key_id)
         if isinstance(show_keys(), str):
             bot.send_message(chat, f"Ключ доступа id: {key_id} удален.\n\n{show_keys()}", reply_markup=markup_back())
         else:
             bot.send_message(chat, f"Ключ доступа id: {key_id} удален.", reply_markup=show_keys())
 
     elif call.data == 'admin_menu':
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.send_message(chat, f"Панель администратора:", reply_markup=admin_menu('super'))
-            bot.clear_step_handler_by_chat_id(chat)
         else:
             bot.send_message(chat, f"Панель администратора:", reply_markup=admin_menu())
-            bot.clear_step_handler_by_chat_id(chat)
+        bot.clear_step_handler_by_chat_id(chat)
         bot.send_message(chat, f"Для выхода в главное меню: --> /start")
-
-    elif call.data.split()[0] == 'prod_m':
-        if len(call.data.split()) == 3:
-            if project.is_super_admin(call.from_user.id):
-                bot.send_message(chat, f"Выбирай:", reply_markup=categories_markup())
-                bot.send_message(chat, f"Для выхода в главное меню: --> '/start'")
-        else:
-            category = call.data.split()[-1]
-            categories = {'delete_category': 'Удалить товар', 'pause_category': 'Товар на паузу',
-                          'edit_category': 'Редактировать товар', 'edit_comments': 'Редактировать комментарии'}
-            if project.is_super_admin(call.from_user.id):
-                bot.send_message(chat, f"Выбирай:", reply_markup=categories_markup(categories[category]))
-                bot.send_message(chat, f"Для выхода в главное меню: --> '/start'")
 
     elif call.data.split(',')[0] in ['Вперед_user', 'Назад_user']:
         category = call.data.split(',')[1].strip()
         start_ind = int(call.data.split(',')[-1])
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.edit_message_reply_markup(chat_id=chat, message_id=call.message.message_id,
                                           reply_markup=products_markup(category, start_ind=start_ind))
 
@@ -523,20 +515,20 @@ id/ имя/ статус цифрой(1 - суперАдмин, 0 - обычны
         category = call.data.split(',')[1].strip()
         action = call.data.split(',')[2].strip()
         start_ind = int(call.data.split(',')[-1])
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.edit_message_reply_markup(chat_id=chat, message_id=call.message.message_id,
                                           reply_markup=products_markup(category, action, start_ind))
 
     elif call.data.split(',')[0] in ['КтгНазад', 'КтгВперед']:
         ctg_name = call.data.split(',')[2].strip()
         start_ind = int(call.data.split()[-1])
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.send_message(chat, "Выбирай:", reply_markup=categories_markup(ctg_name, start_ind))
             bot.send_message(chat, f"Для выхода в главное меню? --> '/start'")
 
     elif call.data.split(',')[0] in ['ВпередКлючи', 'НазадКлючи']:
         start_ind = int(call.data.split(',')[-1])
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.edit_message_reply_markup(chat_id=chat, message_id=call.message.message_id,
                                           reply_markup=show_keys(start_ind))
 
@@ -544,7 +536,7 @@ id/ имя/ статус цифрой(1 - суперАдмин, 0 - обычны
         start_ind = int(call.data.split(',')[-1])
         delete_or_change = call.data.split(',')[1]
         user_id = call.data.split(',')[2]
-        if project.is_super_admin(call.from_user.id):
+        if UserInfo().is_super_admin(call.from_user.id):
             bot.edit_message_reply_markup(chat_id=chat, message_id=call.message.message_id,
                                           reply_markup=show_admins(delete_or_change, user_id, start_ind))
 
