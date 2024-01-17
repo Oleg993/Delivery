@@ -19,31 +19,26 @@ settings_keyboard_inline = dict(one_time=False, inline=True)
 
 users_id_info = {}
 
-start_bot_msg = ("start", "старт", "начать", "начало", "бот", "меню категорий")
+start_bot_msg = ("start", "старт", "начать", "начало", "бот", "меню категорий", "н")
 CALLBACK_TYPES = ("show_snackbar", "open_link", "open_app", "text")
 
 print("Ready")
 
 category_goods = dict()
-# products_info = dict()
 categories = get_categories()
 goods = []
 basket = dict()
-
 
 for categ in categories:
     goods_sql = get_from_category(categ)
     category_goods[categ] = goods_sql
     for pr in goods_sql:
-        # print(pr[0])
         goods.append(pr[0])
 
-# print(categories)
-# print(category_goods)
-# print(goods)
 
 '''Категории'''
 def create_new_keyboard(begin, finish, index, name, text_for_buttons):
+    # begin, finish, index, name, text_for_buttons = info_for_keyboard
     keyboard = VkKeyboard(**settings_keyboard_inline)
 
     if text_for_buttons != "cart":
@@ -53,8 +48,6 @@ def create_new_keyboard(begin, finish, index, name, text_for_buttons):
             keyboard.add_line()
     else:
         for num in range(begin[index], finish[index]):
-            # print(name[num])
-            # print(name)
             keyboard.add_callback_button(label=f"{name[num][0]} - {name[num][1]}", color=VkKeyboardColor.SECONDARY,
                                          payload={"type": f"{text_for_buttons}"})
             keyboard.add_line()
@@ -81,16 +74,11 @@ def create_new_keyboard(begin, finish, index, name, text_for_buttons):
         keyboard.add_button(label='Меню категорий', color=VkKeyboardColor.POSITIVE, payload={"type": "basket"})
         keyboard.add_callback_button(label='Отменить', color=VkKeyboardColor.NEGATIVE, payload={"order": "cancel"})
 
-        # keyboard.add_callback_button(label='Подтвердить', color=VkKeyboardColor.POSITIVE, payload={"type": "basket"})
-        # keyboard.add_callback_button(label='Отменить', color=VkKeyboardColor.NEGATIVE, payload={"type": "basket"})
-
     return keyboard
-
 
 def keyboard_spawn(id):
     return create_new_keyboard(users_id_info[id][5], users_id_info[id][6], users_id_info[id][7],
                                users_id_info[id][8], users_id_info[id][9])
-
 
 for event in longpoll.listen():
 
@@ -99,7 +87,7 @@ for event in longpoll.listen():
         if event.obj.message["text"] != '':
             if event.from_user:
                 if event.obj.message['from_id'] not in users_id_info:
-                    '''0- шаг регистрации/ информация о товаре(карточка), 1- id пользователя/ общая информация 
+                    '''0/ информация о товаре(карточка), 1- id пользователя/ общая информация 
                        для вывода, 2- имя, 3- номер телефона, 4- дата рождения, 5- старт клавиатуры, 
                        6- конец клавиатуры, 7- шаг по клавиатуре между стартом и концом, 8- список категорий/товаров, 
                        9- "category" или "goods" для проверки, 10- клавиатура, 11- корзина, 
@@ -107,41 +95,40 @@ for event in longpoll.listen():
                        15- сгрупированная инфомация заказов пользователя,
                        20- адрес доставки пользователя, 21- индикатор добавления адреса пользователем,
                        22 - комментарий пользователя, 23- индикатор добавления комментария,
-                       24- вся информация о пользователе, 
+                       24- вся информация о пользователе,
                        
+                       0 - шаг регистрации + информация для регистрации, 2- клавиатура
                     '''
-                    users_id_info[event.obj.message['from_id']] = [0, "1", "2", "3", "4", "5", "6", "7", "8", "9",
-                                                                   "10", [], 1, "13", "14", "", "", "", "", "",
+                    users_id_info[event.obj.message['from_id']] = [[0, event.obj.message['from_id']], [], "3", "4",
+                                                                   [], "6", "7", "8", "9", "10",
+                                                                   [], 1, "13", "14", "", "", "", "", "",
                                                                    "20", "21", "22", "23", "24", ""]
 
                 '''Проверка на первый вход в бота с регистрацией'''
                 if is_new(event.obj.message["from_id"]):
                     if event.obj.message["text"].lower() in start_bot_msg:
-                        users_id_info[event.obj.message['from_id']][0] = 1
+                        users_id_info[event.obj.message['from_id']][0][0] = 1
                         vk.messages.send(
                             user_id=event.obj.message['from_id'],
                             random_id=get_random_id(),
                             peer_id=event.obj.message['from_id'],
-                            # keyboard=keyboard_main_menu.get_keyboard(),
                             message="Привет, ты у нас впервые, давай пройдем регистрацию\nВведите ваше ФИО:")
-                    elif users_id_info[event.obj.message['from_id']][0] == 1:
-                        users_id_info[event.obj.message['from_id']][0] = 2
-                        users_id_info[event.obj.message['from_id']][1] = event.obj.message["from_id"]
-                        users_id_info[event.obj.message['from_id']][2] = event.obj.message["text"]
+                    elif users_id_info[event.obj.message['from_id']][0][0] == 1:
+                        users_id_info[event.obj.message['from_id']][0][0] = 2
+                        users_id_info[event.obj.message['from_id']][0].append(event.obj.message["text"])
                         vk.messages.send(
                             user_id=event.obj.message['from_id'],
                             random_id=get_random_id(),
                             peer_id=event.obj.message['from_id'],
                             message="Введите номер телефона (с кодом +375 или 80):")
-                    elif users_id_info[event.obj.message['from_id']][0] == 2:
+                    elif users_id_info[event.obj.message['from_id']][0][0] == 2:
                         tel = event.obj.message["text"].strip()
                         scheme = "('{0}'[:4] == '+375' and '{0}'[1:].isdigit() and len('{0}') == 13) or" \
                                  "('{0}'[:2] == '80' and '{0}'[1:].isdigit() and len('{0}') == 11)"
 
                         if eval(scheme.format(tel)):
-                            users_id_info[event.obj.message['from_id']][0] = 3
-                            users_id_info[event.obj.message['from_id']][3] = event.obj.message["text"]
-
+                            users_id_info[event.obj.message['from_id']][0][0] = 3
+                            users_id_info[event.obj.message['from_id']][0].append(event.obj.message["text"])
                             vk.messages.send(
                                 user_id=event.obj.message['from_id'],
                                 random_id=get_random_id(),
@@ -155,20 +142,18 @@ for event in longpoll.listen():
                                 message="Неверный формат ввода номера телефона, повторите попытку:")
 
                     #'''Отправка сообщения с подтверждением или перезаписью введенных данных'''
-                    elif users_id_info[event.obj.message['from_id']][0] == 3:
-                        users_id_info[event.obj.message['from_id']][4] = event.obj.message["text"]
-
+                    elif users_id_info[event.obj.message['from_id']][0][0] == 3:
+                        users_id_info[event.obj.message['from_id']][0].append(event.obj.message["text"])
                         keyboard_accept_decline = VkKeyboard(**settings_keyboard_inline)
                         keyboard_accept_decline.add_callback_button(label='Подтвердить', color=VkKeyboardColor.POSITIVE,
                                                                     payload={"reg_user": "yes"})
                         keyboard_accept_decline.add_callback_button(label='Заполнить заново',
                                                                     color=VkKeyboardColor.NEGATIVE,
                                                                     payload={"reg_user": "no"})
-
-                        user_info = f"Подтвердите введенные вами данные:\nИмя: " \
-                                    f"{users_id_info[event.obj.message['from_id']][2]}\nТелефон: " \
-                                    f"{users_id_info[event.obj.message['from_id']][3]}\nДата рождения: " \
-                                    f"{users_id_info[event.obj.message['from_id']][4]}"
+                        user_info = f"Подтвердите введенные вами данные:\n" \
+                                    f"Имя: {users_id_info[event.obj.message['from_id']][0][2]}\n" \
+                                    f"Телефон: {users_id_info[event.obj.message['from_id']][0][3]}\n" \
+                                    f"Дата рождения: {users_id_info[event.obj.message['from_id']][0][4]}"
                         vk.messages.send(
                             user_id=event.obj.message['from_id'],
                             random_id=get_random_id(),
@@ -320,10 +305,9 @@ for event in longpoll.listen():
                 event_data=json.dumps(event.object.payload))
         else:
 
-            '''Подтверждение или перезапись введенных пользователем данных'''
+            '''Подтверждение или перезапись введенных пользователем данных регистрации'''
             if event.object.payload.get("reg_user") == "yes":
-                registrator(users_id_info[event.object.user_id][1:5])
-                # users_id_info[event.object.user_id][1] = ""
+                registrator(users_id_info[event.object.user_id][0][1:])
                 vk.messages.edit(
                     peer_id=event.obj.peer_id,
                     message="Регистрация прошла успешно.",
@@ -344,7 +328,8 @@ for event in longpoll.listen():
                     keyboard=users_id_info[event.object.user_id][10].get_keyboard(),
                     message="Выберите доступную категорию товаров:")
             elif event.object.payload.get("reg_user") == "no":
-                users_id_info[event.object.user_id][0] = 1
+                print(users_id_info[event.object.user_id][0])
+                users_id_info[event.object.user_id][0] = [1, event.object.user_id]
                 vk.messages.edit(
                     peer_id=event.obj.peer_id,
                     message='Введите ваше ФИО:',
@@ -636,4 +621,3 @@ for event in longpoll.listen():
                         message='Выберите доступную товары:',
                         conversation_message_id=event.obj.conversation_message_id,
                         keyboard=users_id_info[event.object.user_id][10].get_keyboard())
-
