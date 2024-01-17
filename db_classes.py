@@ -394,8 +394,8 @@ class Comments:
             print(f"Не удалось удалить комментарий: {e}")
             return False
 
-
 # ____________________ АДМИН ПАНЕЛЬ ____________________
+
 
 class AdminManager:
     """Содержит методы: get_admin_data, add_new_admin, show_admins, delete_admin,

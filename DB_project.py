@@ -5,7 +5,6 @@ import telebot
 bot = telebot.TeleBot('6386657547:AAGDz06oEBlutexV47VOPv_FfXen3Dv2Ja0')
 
 
-# В БЛЭКЕ ИЛИ НЕТ ++
 def is_in_black_list(user_id):
     """проверка пользователь в блэке или нет
     :param user_id: id пользователя
@@ -21,7 +20,6 @@ def is_in_black_list(user_id):
         return False
 
 
-# НОВЫЙ ПОЛЬЗОВАТЕЛЬ ИЛИ НЕТ ++
 def is_new(user_id):
     """проверка новый пользователь или нет
     :param user_id: id пользователя
@@ -36,7 +34,6 @@ def is_new(user_id):
         print(f"Произошла ошибка: {e}")
 
 
-# ЯВЛЯЕТСЯ ЛИ АДМИНОМ +
 def is_admin(user_id):
     """проверяем является ли админом
     :param user_id: id пользователя
@@ -52,7 +49,6 @@ def is_admin(user_id):
         return False
 
 
-# ПРОВЕРЯЕТ ПОЛНОМОЧИЯ АДМИНА +
 def is_super_admin(user_id):
     """проверяем с какими полномочиями
     :param user_id: id admin
@@ -68,7 +64,6 @@ def is_super_admin(user_id):
         return False
 
 
-# РЕГИСТРАЦИЯ НОВОГО ПОЛЬЗОВАТЕЛЯ ++
 def registrator(user_data):
     """принимает список данных и добавляет пользователя в БД
     :param user_data: [id, user_name, phone_number, birthday (формат ввода '01.01.2023')]
@@ -83,7 +78,6 @@ def registrator(user_data):
         return False
 
 
-# СПИСОК КАТЕГОРИЙ ++
 def get_categories():
     """возвращаем список названий категорий
     :return: Список категорий, False если таблица пустая """
@@ -115,7 +109,6 @@ def get_from_category(category_name):
         return False
 
 
-# КАРТОЧКА ВЫБРАННОГО ТОВАРА ++
 def show_product_card(product_name):
     """Отображает данные для карточки товара
     :param product_name: название товара
@@ -137,7 +130,6 @@ def show_product_card(product_name):
         return False
 
 
-# ДОБАВЛЕНИЕ АДРЕСА ДОСТАВКИ В ДАННЫЕ ПОЛЬЗОВАТЕЛЯ
 def correct_delivery_address(delivery_address, user_id):
     """Изменение адреса пользователя в БД
     :param delivery_address: новый адресс введенный пользователем в формате str
@@ -153,7 +145,6 @@ def correct_delivery_address(delivery_address, user_id):
         return False
 
 
-# ПОЛУЧАЕМ id и ОБЩУЮ СТОИМОСТЬ ЗАКАЗА
 def get_total_price(goods):
     """вывод общей стоимости товаров в заказе по имени товара
     :param goods: [[название товара, количество единиц]]
@@ -172,7 +163,6 @@ def get_total_price(goods):
         return None
 
 
-# ПОЛУЧАЕМ ID ТОВАРОВ ПО НАЗВАНИЯМ
 def get_good_ids(names):
     """вывод списка id товаров по именам товаров
     :param names: СПИСОК [название товара, название товара]
@@ -192,7 +182,6 @@ def get_good_ids(names):
         return None
 
 
-# ПОЛУЧАЕМ ВРЕМЯ САМОГО ДОЛГОГОТОВЯЩЕГОСЯ ТОВАРА + 30 МИНУТ
 def get_max_good_time(good_names):
     """вывод максимального времени приготовленя блюда изи заказа
     :param good_names: список названий товаров
@@ -212,7 +201,6 @@ def get_max_good_time(good_names):
         return None
 
 
-# ЗАГРУЗКА ДАННЫХ В БД ПОСЛЕ ПОДТВЕРЖДЕНИЯ ЗАКАЗА
 def from_cart_into_db(user_data, price, cart, delivery_time, delivery_note):
     """помещаем заказ из корзины в БД
     :param user_data: данные пользователя [user_id, user_tel, address]
@@ -244,7 +232,6 @@ def from_cart_into_db(user_data, price, cart, delivery_time, delivery_note):
         return False
 
 
-# ИЗМЕНЕНИЕ СТАТУСА ЗАКАЗА
 def change_delivery_status(order_id):
     """изменяем статус заказа после доставления на "доставлено"
     :param order_id: id заказа в котором нужно изменить статус
@@ -259,7 +246,6 @@ def change_delivery_status(order_id):
         return False
 
 
-# УДАЛЕНИЕ ЗАКАЗА(ОТМЕНА)
 def delete_order(order_id):
     """удаляет заказ если пользователь решил отменить
     :param order_id: id заказа в который нужно удалить
@@ -274,7 +260,6 @@ def delete_order(order_id):
         return False
 
 
-# НОМЕР ЗАКАЗА И ВРЕМЯ ПРИГОТОВЛЕНИЯ + 30 МИН. +
 def show_order_info(user_id):
     """Показывает информацию о заказах пользователя, кроме доставленных заказов.
     :param user_id: id пользователя
@@ -298,7 +283,6 @@ def show_order_info(user_id):
         return None
 
 
-# КОРТЕЖ ДАННЫХ ПОЛЬЗОВАТЕЛЯ ++
 def get_user_data(user_id):
     """ Получение данных пользователя
     :param user_id: id пользователя
@@ -314,7 +298,6 @@ def get_user_data(user_id):
         return False
 
 
-# КОРТЕЖ ДАННЫХ АДМИНА ++
 def get_admin_data(user_id):
     """ Получение данных администратора
         :param user_id: id пользователя
@@ -333,7 +316,6 @@ def get_admin_data(user_id):
         return False
 
 
-# СПИСОК КОММЕНТАРИЕВ +
 def show_comments(good_name):
     """Выводит все комментарии в виде [(comment_id, коммент, пользователь), (comment_id, коммент, пользователь)]
     :param good_name: название товара
@@ -354,7 +336,6 @@ def show_comments(good_name):
         return False
 
 
-# ДОБАВЛЕНИЕ КОММЕНТАРИЯ +
 def add_comment(good_name, user_id, content):
     """добавление нового комментария
     :param good_name: имя товара
@@ -381,7 +362,6 @@ def add_comment(good_name, user_id, content):
 # ____________________ АДМИН ПАНЕЛЬ ____________________
 
 
-# ДОБАВЛЕНИЕ НОВОГО ТОВАРА +
 def add_new_goods(params):
     """добавление нового товара
     :param params:[категория, название, описание, цена, время приготовления, вес, id картинки из ТГ]
@@ -403,7 +383,6 @@ def add_new_goods(params):
         return False
 
 
-# УДАЛЕНИЕ ТОВАРА +
 def delete_goods(good_name):
     """удаляем товра из БД
     :param good_name: имя товара
@@ -423,7 +402,6 @@ def delete_goods(good_name):
         return False
 
 
-# ИЗМЕНЕНИЕ КАРТОЧКИ ТОВАРА
 def correct_goods(good_name, new_data):
     """изменяем карточку товара
     :param good_name: название товара
@@ -447,7 +425,6 @@ def correct_goods(good_name, new_data):
         return False
 
 
-# ДОБАВЛЕНИЕ НОВОГО АДМИНА +
 def add_new_admin(admin_id, name, is_super):
     """Добавояем нового администратора
     :param admin_id: id нового админа
@@ -467,8 +444,6 @@ def add_new_admin(admin_id, name, is_super):
         return False
 
 
-# ПОСМОТРЕТЬ КАК ПРОЩЕ КНОПКАМИ ВЫВОДИТЬ ИЛИ ТЕКСТОМ ДЛЯ ПОСЛЕДУЮЩЕГО УДАЛЕНИЯ
-# ВЫВОДИМ СПИСОК АДМИНОВ +
 def show_admins(user_id):
     """Отображаем список имеющихся администраторов, кроме того который запрашивает
     :return: возвращаем список кортежей [(name, id, is_super(1-super, 0- нет)]"""
@@ -486,7 +461,6 @@ def show_admins(user_id):
         return False
 
 
-# УДАЛЯЕМ АДМИНА ++
 def delete_admin(admin_id):
     """удаляет администратора по ID,
     :param admin_id: id администратора
@@ -503,7 +477,6 @@ def delete_admin(admin_id):
         return False
 
 
-# ИЗМЕНЕНИЕ СТАТУСА АДМИНИСТРАТОРА +
 def change_admin_status(admin_id):
     """Изменяет статус администратора с простого на Супер и наоборот
     :param admin_id: id админа
@@ -523,7 +496,6 @@ def change_admin_status(admin_id):
         return False
 
 
-# УДАЛЕНИЕ КОММЕНТАРИЯ +
 def delete_comment(com_id):
     """удаляет комментарий по id
     админ руками вписывает id комментария
@@ -541,7 +513,6 @@ def delete_comment(com_id):
         return False
 
 
-# ДОБАВЛЕНИЕ НОВОГО КЛЮЧА +
 def add_new_key(new_key, is_for_super):
     """добавляем ключ доступа в таблицу
     :param new_key: в формате int либо str.strpi()
@@ -557,7 +528,6 @@ def add_new_key(new_key, is_for_super):
         return False
 
 
-# ОТОБРАЖАЕМ ИМЕЮЩИЕСЯ КЛЮЧИ ДОСТУПА +
 def show_keys():
     """выводит все имебщиеся ключи и их статус
     :return: [(id, ключ, статус)] статус 1- супер админ, 0 - обычный"""
@@ -572,7 +542,6 @@ def show_keys():
         return False
 
 
-# УДАЛЕНИЕ КЛЮЧА ИЗ ТАБЛИЦЫ +
 def delete_key(key_id):
     """удаляем ключ доступа из БД
     :param key_id: id ключа
@@ -587,7 +556,6 @@ def delete_key(key_id):
         return False
 
 
-# ПРОВЕРКА ВАЛИДНОСТИ КЛЮЧА ДОСТУПА +
 def is_valid_key(key):
     """Проверяем есть ли ключ
     :param key: ключ введенный пользователем int либо str.strip()
@@ -603,7 +571,6 @@ def is_valid_key(key):
         return False
 
 
-# ИЗМЕНЕНИЕ СТАТУСА ПОЛЬЗОВАТЕЛЯ НА АДМИНА В СЛУЧАЕ ВВЕДЕНИЯ КЛЮЧА ДОСТУПА
 def change_user_to_admin(user_id, key):
     """Изменям статус пользователя с ключом доступа
     :param user_id: id пользователя
