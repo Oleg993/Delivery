@@ -3,7 +3,7 @@ from vk_api.utils import get_random_id
 from vk_api.bot_longpoll import VkBotLongPoll, VkBotEventType
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 import json
-from DB_project import *
+from db_class import DataBase
 
 GROUP_ID = '223946162'
 GROUP_TOKEN = 'vk1.a.zhRXKGyzrpgcWWQ5aSSFSdckc_EuQLXdT2PLoiX_5ZvTVu1HYMdcaezUMqjQVNKMQmffElYVvu39gBLIFVWYabtm3lQP_Fv8' \
@@ -24,12 +24,12 @@ CALLBACK_TYPES = ("show_snackbar", "open_link", "open_app", "text")
 
 users_id_info = dict()
 category_goods = dict()
-categories = get_categories()
+categories = DataBase().get_categories()
 goods = []
 basket = dict()
 
 for category in categories:
-    goods_sql = get_from_category(category)
+    goods_sql = DataBase().get_from_category(category)
     category_goods[category] = goods_sql
     for pr in goods_sql:
         goods.append(pr[0])
@@ -130,7 +130,7 @@ for event in longpoll.listen():
                                                                    ["", 1], "info", "key", "6"]
 
                 '''Проверка на первый вход в бота с регистрацией'''
-                if is_new(event.obj.message["from_id"]):
+                if DataBase().is_new(event.obj.message["from_id"]):
                     if event.obj.message["text"].lower() in start_bot_msg:
                         users_id_info[event.obj.message['from_id']][0][0] = 1
 
@@ -190,7 +190,7 @@ for event in longpoll.listen():
                             message=user_info)
 
                 # '''Вывод первичного меню категорий товаров'''
-                elif not is_new(event.obj.message["from_id"]):
+                elif not DataBase().is_new(event.obj.message["from_id"]):
                     if event.obj.message["text"].lower() in start_bot_msg:
                         users_id_info[event.obj.message['from_id']][2] = []  # создание пустой корзины
                         users_id_info[event.obj.message['from_id']][1] = [[i for i in range(0, len_category, 4)],
@@ -219,7 +219,7 @@ for event in longpoll.listen():
 
                 elif event.obj.message["text"] in goods:
                     params = ["Название: ", "Описание: ", "Граммовка: ", "Цена: ", "Рейтинг: "]
-                    good_card_info = show_product_card(event.obj.message["text"])
+                    good_card_info = DataBase().show_product_card(event.obj.message["text"])
                     users_id_info[event.obj.message['from_id']][3] = [good_card_info[2], 1]
                     users_id_info[event.obj.message['from_id']][4] = params[0] + good_card_info[2] + "\n" + \
                                                                      params[1] + good_card_info[3] + "\n" + \
@@ -236,7 +236,7 @@ for event in longpoll.listen():
                 '''Добавление нового адреса пользователя'''
                 if users_id_info[event.obj.message['from_id']][5] == "add address":
                     users_id_info[event.obj.message['from_id']][5] = " "
-                    correct_delivery_address(event.obj.message["text"], event.obj.message['from_id'])
+                    DataBase().correct_delivery_address(event.obj.message["text"], event.obj.message['from_id'])
 
                     vk.messages.send(
                         user_id=event.obj.message['from_id'],
@@ -248,12 +248,13 @@ for event in longpoll.listen():
                 # '''Добавление комментария к заказу'''
                 elif users_id_info[event.obj.message['from_id']][5] == "add commentary":
                     users_id_info[event.obj.message['from_id']][5] = " "
-                    user_data = get_user_data(event.obj.message['from_id'])
+                    user_data = DataBase().get_user_data(event.obj.message['from_id'])
 
-                    from_cart_into_db([user_data[i] for i in [0, 2, 6]],
-                                      get_total_price(users_id_info[event.obj.message['from_id']][2]),
-                                      users_id_info[event.obj.message['from_id']][2],
-                                      30, event.obj.message["text"])
+                    DataBase().from_cart_into_db([user_data[i] for i in [0, 2, 6]],
+                                                 DataBase().get_total_price(
+                                                     users_id_info[event.obj.message['from_id']][2]),
+                                                 users_id_info[event.obj.message['from_id']][2],
+                                                 30, event.obj.message["text"])
                     vk.messages.send(
                         user_id=event.obj.message['from_id'],
                         random_id=get_random_id(),
@@ -271,7 +272,7 @@ for event in longpoll.listen():
         else:
             '''Подтверждение или перезапись введенных пользователем данных регистрации'''
             if event.object.payload.get("reg_user") == "yes":
-                registrator(users_id_info[event.object.user_id][0][1:])
+                DataBase().registrator(users_id_info[event.object.user_id][0][1:])
 
                 vk.messages.edit(
                     peer_id=event.obj.peer_id,
@@ -380,7 +381,7 @@ for event in longpoll.listen():
                     message="Выберите доступную категорию товаров:")
 
             elif event.object.payload.get("order") == "accept":
-                users_id_info[event.object.user_id][5] = get_user_data(event.object.user_id)[-1]
+                users_id_info[event.object.user_id][5] = DataBase().get_user_data(event.object.user_id)[-1]
 
                 if users_id_info[event.object.user_id][5] == "NONE" or event.object.payload.get("address") == "new":
                     users_id_info[event.object.user_id][5] = "add address"
@@ -450,9 +451,10 @@ for event in longpoll.listen():
                     conversation_message_id=event.obj.conversation_message_id)
 
             elif event.object.payload.get("commentary") == "skip":
-                user_data = get_user_data(event.object.user_id)
-                from_cart_into_db([user_data[i] for i in [0, 2, 6]], get_total_price([event.object.user_id][2]),
-                                  users_id_info[event.object.user_id][2], 30, " ")
+                user_data = DataBase().get_user_data(event.object.user_id)
+                DataBase().from_cart_into_db([user_data[i] for i in [0, 2, 6]],
+                                             DataBase().get_total_price([event.object.user_id][2]),
+                                             users_id_info[event.object.user_id][2], 30, " ")
                 vk.messages.send(
                     user_id=event.object.user_id,
                     random_id=get_random_id(),
@@ -462,7 +464,7 @@ for event in longpoll.listen():
 
             '''Просмотр сформированных заказов'''
             if event.object.payload.get("type") == "orders":
-                orders_information = show_order_info(event.object.user_id)
+                orders_information = DataBase().show_order_info(event.object.user_id)
 
                 if orders_information == 'Заказы не найдены':
                     vk.messages.edit(
